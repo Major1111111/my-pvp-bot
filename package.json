@@ -1,0 +1,12 @@
+{
+  "name": "my-pvp-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "grammy": "^1.20.0"
+  }
+}

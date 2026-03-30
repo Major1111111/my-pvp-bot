@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; }
+        .wheel { width: 300px; height: 300px; border: 5px solid gold; border-radius: 50%; margin: 20px auto; transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); }
+        .bet-btn { padding: 15px 30px; background: gold; border: none; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>PvP РУЛЕТКА</h1>
+    <div id="status">Создай ставку или жди игрока</div>
+    <div class="wheel" id="wheel">🎰</div>
+    <button class="bet-btn" onclick="makeBet()">ПОСТАВИТЬ 100 💸</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Развернуть на весь экран
+
+        function makeBet() {
+            // Отправляем данные боту, что игрок сделал ставку
+            tg.sendData(JSON.stringify({action: 'bet', amount: 100}));
+            document.getElementById('status').innerText = "Ставка принята! Ждем противника...";
+        }
+
+        // Слушаем события от сервера (через бота)
+        // Здесь можно добавить анимацию вращения
+        function spinWheel(winner) {
+            const wheel = document.getElementById('wheel');
+            wheel.style.transform = "rotate(3600deg)"; // Крутим 10 раз
+            setTimeout(() => {
+                alert("Победил: " + winner);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
