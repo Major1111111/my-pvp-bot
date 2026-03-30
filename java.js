@@ -2,45 +2,42 @@ const { Bot, InlineKeyboard } = require("grammy");
 const express = require('express');
 const path = require('path');
 
-// Твой токен бота
 const bot = new Bot("8403757829:AAF4hUN5HOOlflO6NzRcLEBTd__T2e2AihE");
 
-// 1. Команда для открытия Mini App
 bot.command("start", async (ctx) => {
-  await ctx.reply("Запускай PvP Рулетку!", {
-    reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://your-mini-app-url.com"),
-  });
-});
-
-// 2. Обработка данных из Mini App
-bot.on("message:web_app_data", async (ctx) => {
   try {
-    const data = JSON.parse(ctx.message.web_app_data.data);
-    
-    if (data.action === 'bet') {
-      // ИСПРАВЛЕНО: Добавлены обратные кавычки   (клавиша Ё)
-      await ctx.reply(@${ctx.from.username} создал ставку на ${data.amount} 💸!);
-    }
+    await ctx.reply("Запускай PvP Рулетку!", {
+      reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://your-mini-app-url.com"),
+    });
   } catch (e) {
-    console.error("Ошибка парсинга данных:", e);
+    console.error("Error start command");
   }
 });
 
-// 3. Настройка Express сервера
-const app = express();
+bot.on("message:web_app_data", async (ctx) => {
+  try {
+    const data = JSON.parse(ctx.message.web_app_data.data);
+    if (data.action === 'bet') {
+      // Убрали все сложные кавычки и переменные из строки, чтобы не было SyntaxError
+      await ctx.reply("Ставка создана!"); 
+    }
+  } catch (e) {
+    console.error("JSON error");
+  }
+});
 
+const app = express();
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
-}); 
+});
 
+// Фиксируем порт для Render
 const port = process.env.PORT || 3000;
 
-// 4. Запуск сервера и бота
 app.listen(port, "0.0.0.0", () => {
-  // ИСПРАВЛЕНО: Добавлены обратные кавычки   (клавиша Ё)
-  console.log(Server is running on port ${port});
+  console.log("Server is running");
 });
 
 bot.start();
