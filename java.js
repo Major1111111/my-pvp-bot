@@ -1,6 +1,6 @@
 const { Bot, InlineKeyboard } = require("grammy");
 
-const bot = new Bot("YOUR_BOT_TOKEN");
+const bot = new Bot("8403757829:AAF4hUN5HOOlflO6NzRcLEBTd__T2e2AihE");
 
 // Команда для открытия Mini App
 bot.command("start", async (ctx) => {
