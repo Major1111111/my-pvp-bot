@@ -3,57 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра на колесе</title>
+    <title>Telegram Mini App</title>
+    <!-- Подключаем библиотеку Socket.io из интернета -->
+    <script src="https://socket.io"></script>
     <style>
-        /* Стили для колеса и интерфейса */
-        #wheel {
-            width: 300px;
-            height: 300px;
-            border: 10px solid #000;
-            border-radius: 50%;
-            position: relative;
-            margin: 20px auto;
-            transition: background 0.5s;
-        }
-        #bet-list {
-            margin-top: 20px;
-        }
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        #wheel { width: 100px; height: 100px; background: #ccc; margin: 20px auto; border-radius: 50%; transition: 0.5s; }
+        #bet-list { margin-top: 20px; text-align: left; max-width: 300px; margin-left: auto; margin-right: auto; }
+        .bet-item { border-bottom: 1px dotted #888; padding: 5px 0; }
     </style>
 </head>
 <body>
-    <h1>Игра на колесе</h1>
-    <div id="wheel"></div>
+
+    <div id="wheel">КОЛЕСО</div>
     
-    <input type="number" id="amount" placeholder="Введите сумму ставки" />
+    <input type="number" id="amount" placeholder="Сумма в TON">
     <button onclick="bet()">Сделать ставку</button>
 
-    <div id="bet-list"></div>
+    <div id="bet-list">
+        <strong>Последние ставки:</strong>
+    </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        // 1. Инициализация сокета
+        const socket = io(); 
 
-        socket.on('newBet', (data) => {
-            const list = document.getElementById('bet-list');
-            const betItem = document.createElement('div');
-            betItem.innerText = '${data.player}: ${data.amount} TON'; // Использование шаблонных строк
-            list.appendChild(betItem);
-
-            // Обновление колеса или других элементов UI в зависимости от ставок
-            const wheel = document.getElementById('wheel');
-            wheel.style.background = "#4CAF50"; // Измените цвет колеса для примера
+        // 2. Обработка новых ставок (обновление списка на экране)
+        socket.on('newBet', function(data) {
+            const list = document.getElementById('bet-list'); 
+            if (list) {
+                const betItem = document.createElement('div');
+                betItem.className = 'bet-item';
+                // Используем обычные кавычки и плюсики, чтобы не путаться
+                betItem.innerText = data.player + ": " + data.amount + " TON"; 
+                list.appendChild(betItem);
+            }
         });
-        
+
+        // 3. Функция самой ставки
         function bet() {
+            // ВЕЗДЕ исправлено на getElementById (буква L, не единица)
             const amountInput = document.getElementById('amount');
-            const amount = parseFloat(amountInput.value);
-            if (isNaN(amount) || amount <= 0) {
-                alert('Введите корректную сумму.');
+            const wheel = document.getElementById('wheel');
+
+            if (!amountInput || !amountInput.value) {
+                alert("Введите сумму ставки!");
                 return;
             }
 
-            socket.emit('placeBet', { player: 'Игрок', amount: amount }); // Замените 'Игрок' на актуальное имя игрока
-            amountInput.value = ''; // Очистка поля ввода
+            const amountValue = amountInput.value;
+
+            // Отправляем данные на сервер
+            socket.emit('placeBet', { 
+                player: 'Игрок', 
+                amount: amountValue 
+            });
+
+            // Визуал: меняем цвет колеса на зеленый
+            if (wheel) {
+                wheel.style.background = "#4CAF50";
+            }
+            
+            console.log("Ставка отправлена: " + amountValue);
         }
     </script>
 </body>
