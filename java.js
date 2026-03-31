@@ -19,21 +19,23 @@ let isSpinning = false;
 setInterval(() => {
   if (timer > 0) {
     timer--;
-  } else if (!isSpinning) {
-    startDraw();
+  } else {
+    if (!isSpinning) {
+      if (currentBets.length >= 2) {
+        startDraw();
+      } else {
+        timer = 30;
+        currentBets = [];
+        io.emit('newBet', currentBets);
+      }
+    }
   }
   io.emit('timerUpdate', { timer, isSpinning });
 }, 1000);
 
 function startDraw() {
-  if (currentBets.length < 2) {
-    timer = 30; 
-    return;
-  }
-
   isSpinning = true;
   const totalBank = currentBets.reduce((sum, b) => sum + b.amount, 0);
-  
   let random = Math.random() * totalBank;
   let currentSum = 0;
   let winner = currentBets[0];
@@ -47,18 +49,18 @@ function startDraw() {
   }
 
   players[winner.id] = (players[winner.id] || 1000) + totalBank;
-
   io.emit('winnerInfo', { 
     winner, 
     totalBank, 
-    winningTicket: random,
-    bets: currentBets 
+    bets: currentBets,
+    rotation: 1800 + Math.floor(Math.random() * 360)
   });
 
   setTimeout(() => {
     currentBets = [];
     timer = 30;
     isSpinning = false;
+    io.emit('newBet', currentBets);
   }, 10000);
 }
 
@@ -70,9 +72,9 @@ io.on('connection', (socket) => {
 
   socket.on('placeBet', (data) => {
     if (isSpinning) return;
-    let currentBalance = players[data.id] || 1000;
-    if (currentBalance >= data.amount) {
-      players[data.id] = currentBalance - data.amount;
+    let balance = players[data.id] || 1000;
+    if (balance >= data.amount) {
+      players[data.id] = balance - data.amount;
       currentBets.push({ id: data.id, name: data.name, amount: data.amount, photo: data.photo });
       io.emit('newBet', currentBets);
       socket.emit('updateBalance', players[data.id]);
@@ -81,18 +83,15 @@ io.on('connection', (socket) => {
 });
 
 bot.command("start", async (ctx) => {
-  await ctx.reply("Запускай PvP Рулетку! Твой баланс: 1000 TON", {
+  await ctx.reply("PvP Рулетка: Баланс 1000 TON", {
     reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://onrender.com"), 
   });
 });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
 const port = process.env.PORT || 3000;
 server.listen(port, "0.0.0.0", () => {
   console.log('Сервер запущен на порту ${port}');
 });
-
 bot.start();
