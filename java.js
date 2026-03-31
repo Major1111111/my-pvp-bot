@@ -1,48 +1,51 @@
 const { Bot, InlineKeyboard } = require("grammy");
 const express = require('express');
 const path = require('path');
-const http = require('http'); // Добавили для работы сокетов
-const { Server } = require("socket.io"); // Добавили socket.io
+const http = require('http'); 
+const { Server } = require("socket.io");
 
-const bot = new Bot("8403757829:AAF4hUN5HOOlflO6NzRcLEBTd__T2e2AihE"); // Не забудь вставить токен
+// ВСТАВЬ СВОЙ ТОКЕН НИЖЕ (в кавычках)
+const bot = new Bot("8403757829:AAF4hUN5HOOlflO6NzRcLEBTd__T2e2AihE"); 
 
 const app = express();
-const server = http.createServer(app); // Создаем сервер через http
-const io = new Server(server); // Подключаем сокеты к серверу
+const server = http.createServer(app); 
+const io = new Server(server); 
 
 app.use(express.static(__dirname));
 
-let onlineCount = 0; // Переменная для хранения онлайна
+let onlineCount = 0; 
 
 // Логика сокетов
 io.on('connection', (socket) => {
-  onlineCount++; // Кто-то зашел
-  io.emit('updateOnline', onlineCount); // Рассылаем всем новое число
+  onlineCount++; 
+  io.emit('updateOnline', onlineCount); 
 
   socket.on('disconnect', () => {
-    onlineCount--; // Кто-то вышел
-    io.emit('updateOnline', onlineCount); // Обновляем у всех
+    onlineCount--; 
+    io.emit('updateOnline', onlineCount); 
   });
 });
 
 bot.command("start", async (ctx) => {
   try {
     await ctx.reply("Запускай PvP Рулетку!", {
-      reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://your-mini-app-url.com"),
+      reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://my-pvp-bot.onrender.com"), // Замени на свою ссылку
     });
   } catch (e) {
-    console.error("Error start command");
+    console.error("Ошибка в команде start:", e);
   }
 });
 
 app.get('/', (req, res) => {
+  // Убедись, что файл index.html лежит в этой же папке!
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const port = process.env.PORT || 3000;
-// ВАЖНО: теперь запускаем server.listen, а не app.listen
+
 server.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on port ${port}`);
+  console.log('Сервер запущен на порту ${port}');
 });
 
+// Запуск бота
 bot.start();
