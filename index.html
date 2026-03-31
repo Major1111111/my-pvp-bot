@@ -1,34 +1,53 @@
-<!-- Оставил только скриптовую часть, так как стили у тебя были верные -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://telegram.org"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #0f0f13; color: white; text-align: center; font-family: sans-serif; margin: 0; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; padding: 15px; }
+        .balance-badge { background: #1c222d; padding: 8px 20px; border-radius: 12px; border: 1px solid #303743; }
+        .game-container { position: relative; width: 280px; height: 280px; margin: 20px auto; }
+        .wheel-box { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #1c222d; position: relative; overflow: hidden; transition: transform 5s cubic-bezier(0.1, 0, 0.1, 1); background: conic-gradient(#0044ff 0% 50%, #ff2a2a 50% 100%); }
+        .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; border: 2px solid #fff; }
+        .player-img { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; }
+        .p1 { top: 20px; left: 50%; transform: translateX(-50%); }
+        .p2 { bottom: 20px; left: 50%; transform: translateX(-50%); }
+        .bet-btn { background: #0088cc; color: white; border: none; padding: 15px 40px; border-radius: 12px; font-size: 16px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header"><div class="balance-badge">БАЛАНС: <span id="balance">1000</span> TON</div></div>
+    <div class="game-container">
+        <div class="wheel-center" id="timer">00:30</div>
+        <div class="wheel-box" id="wheel"><div id="players-on-wheel"></div></div>
+    </div>
+    <div id="status">Ожидание игроков...</div>
+    <button class="bet-btn" onclick="sendBet()">СТАВКА 100 TON</button>
+
     <script>
         const socket = io();
         const tg = window.Telegram.WebApp;
         tg.expand();
-
         const user = tg.initDataUnsafe.user || { id: Date.now(), first_name: "Игрок" };
         
         socket.emit('initPlayer', { id: user.id, name: user.first_name });
-
-        socket.on('updateBalance', (bal) => {
-            document.getElementById('balance').innerText = bal;
-        });
-
+        socket.on('updateBalance', (bal) => { document.getElementById('balance').innerText = bal; });
+        
         socket.on('timerUpdate', (data) => {
-            let s = data.timer < 10 ? '0' + data.timer : data.timer;
-            // ИСПРАВЛЕНО: добавлены обратные кавычки
+            let s = data.timer < 10 ? 0${data.timer} : data.timer;
             document.getElementById('timer').innerText = 00:${s};
-            if(data.isSpinning) document.getElementById('status').innerText = "Идет розыгрыш!";
         });
 
         socket.on('newBet', (bets) => {
             const container = document.getElementById('players-on-wheel');
             container.innerHTML = '';
-            // ИСПРАВЛЕНО: добавлены обратные кавычки
-            document.getElementById('status').innerText = Ставок в раунде: ${bets.length};
-            
+            document.getElementById('status').innerText = Ставок: ${bets.length};
             bets.forEach((bet, index) => {
                 const img = document.createElement('img');
                 img.src = bet.photo || 'https://placeholder.com';
-                // ИСПРАВЛЕНО: добавлены обратные кавычки
                 img.className = player-img p${index + 1};
                 container.appendChild(img);
             });
@@ -36,27 +55,19 @@
 
         socket.on('winnerInfo', (data) => {
             const wheel = document.getElementById('wheel');
-            const randomRotation = 1800 + Math.floor(Math.random() * 360); 
-            // ИСПРАВЛЕНО: добавлены обратные кавычки
-            wheel.style.transform = rotate(${randomRotation}deg);
-
+            const rotation = 1800 + Math.floor(Math.random() * 360);
+            wheel.style.transform = rotate(${rotation}deg);
             setTimeout(() => {
-                tg.HapticFeedback.notificationOccurred('success');
-                // ИСПРАВЛЕНО: добавлены обратные кавычки
-                alert(Победил ${data.winner.name}! Выигрыш: ${data.totalBank} TON);
+                alert(Победа: ${data.winner.name}! Банк: ${data.totalBank} TON);
                 wheel.style.transition = 'none';
                 wheel.style.transform = 'rotate(0deg)';
                 setTimeout(() => wheel.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.1, 1)', 100);
-                document.getElementById('players-on-wheel').innerHTML = '';
             }, 5500);
         });
 
         function sendBet() {
-            socket.emit('placeBet', { 
-                id: user.id, 
-                name: user.first_name, 
-                amount: 100,
-                photo: user.photo_url
-            });
+            socket.emit('placeBet', { id: user.id, name: user.first_name, amount: 100, photo: user.photo_url });
         }
     </script>
+</body>
+</html>
