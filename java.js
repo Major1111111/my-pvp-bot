@@ -46,7 +46,6 @@ function startDraw() {
     }
   }
 
-  // ИСПРАВЛЕНО: добавлен логический оператор ||
   players[winner.id] = (players[winner.id] || 1000) + totalBank;
 
   io.emit('winnerInfo', { 
@@ -71,8 +70,9 @@ io.on('connection', (socket) => {
 
   socket.on('placeBet', (data) => {
     if (isSpinning) return;
-    if ((players[data.id] || 1000) >= data.amount) {
-      players[data.id] = (players[data.id] || 1000) - data.amount;
+    let currentBalance = players[data.id] || 1000;
+    if (currentBalance >= data.amount) {
+      players[data.id] = currentBalance - data.amount;
       currentBets.push({ id: data.id, name: data.name, amount: data.amount, photo: data.photo });
       io.emit('newBet', currentBets);
       socket.emit('updateBalance', players[data.id]);
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
 
 bot.command("start", async (ctx) => {
   await ctx.reply("Запускай PvP Рулетку! Твой баланс: 1000 TON", {
-    reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://my-pvp-bot.onrender.com"), 
+    reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://onrender.com"), 
   });
 });
 
@@ -90,7 +90,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ИСПРАВЛЕНО: добавлены || и обратные кавычки
 const port = process.env.PORT || 3000;
 server.listen(port, "0.0.0.0", () => {
   console.log('Сервер запущен на порту ${port}');
