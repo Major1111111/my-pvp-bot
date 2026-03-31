@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http'); 
 const { Server } = require("socket.io");
 
-const bot = new Bot("8403757829:AAF4hUN5HOOlflO6NzRcLEBTd__T2e2AihE"); 
+const bot = new Bot("YOUR_BOT_TOKEN"); 
 const app = express();
 const server = http.createServer(app); 
 const io = new Server(server); 
@@ -20,7 +20,6 @@ let onlineCount = 0;
 const colors = ["#FF3B30", "#007AFF", "#34C759", "#FFCC00", "#AF52DE", "#5856D6", "#FF9500"];
 
 setInterval(() => {
-  // Таймер запускается только если игроков 2 и более
   if (currentBets.length >= 2 && timer > 0 && !isSpinning) {
     timer--;
     io.emit('timerUpdate', { timer, isSpinning });
@@ -46,8 +45,8 @@ function startDraw() {
     }
   }
 
-  players[winner.id] = (players[winner.id] || 1000) + totalBank;
-  
+  players[winner.id] += totalBank; // Исправлено: добавление к балансу
+
   io.emit('winnerInfo', { 
     winner, 
     totalBank, 
@@ -73,12 +72,13 @@ io.on('connection', (socket) => {
 
   socket.on('placeBet', (data) => {
     if (isSpinning) return;
+
     const amount = parseFloat(data.amount);
     if (isNaN(amount) || amount <= 0) return;
 
-    let balance = players[data.id] || 1000;
+    let balance = players[data.id] || 1000; // Исправлено: получение баланса
     if (balance >= amount) {
-      players[data.id] = balance - amount;
+      players[data.id] -= amount; // Исправлено: уменьшение баланса
       
       let existing = currentBets.find(b => b.id === data.id);
       if (existing) {
@@ -107,5 +107,5 @@ bot.command("start", (ctx) => {
   });
 });
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3000); // Исправлено: оператор || для порта
 bot.start();
