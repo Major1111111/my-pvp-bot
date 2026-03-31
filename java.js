@@ -1,6 +1,5 @@
 const { Bot, InlineKeyboard } = require("grammy");
 const express = require('express');
-const path = require('path');
 const http = require('http'); 
 const { Server } = require("socket.io");
 
@@ -15,22 +14,21 @@ let players = {};
 let currentBets = []; 
 let timer = 30;
 let isSpinning = false;
+let onlineCount = 0;
+
+// Список ярких цветов для игроков
+const colors = ["#FF3B30", "#007AFF", "#34C759", "#FFCC00", "#AF52DE", "#5856D6", "#FF9500"];
 
 setInterval(() => {
-  if (timer > 0) {
+  // Таймер запускается только если игроков 2 и более
+  if (currentBets.length >= 2 && timer > 0 && !isSpinning) {
     timer--;
-  } else {
-    if (!isSpinning) {
-      if (currentBets.length >= 2) {
-        startDraw();
-      } else {
-        timer = 30;
-        currentBets = [];
-        io.emit('newBet', currentBets);
-      }
-    }
+    io.emit('timerUpdate', { timer, isSpinning });
+  } 
+  
+  if (timer === 0 && !isSpinning && currentBets.length >= 2) {
+    startDraw();
   }
-  io.emit('timerUpdate', { timer, isSpinning });
 }, 1000);
 
 function startDraw() {
@@ -49,22 +47,25 @@ function startDraw() {
   }
 
   players[winner.id] = (players[winner.id] || 1000) + totalBank;
+  
   io.emit('winnerInfo', { 
     winner, 
     totalBank, 
-    bets: currentBets,
-    rotation: 1800 + Math.floor(Math.random() * 360)
+    rotation: 2000 + Math.floor(Math.random() * 500)
   });
 
   setTimeout(() => {
     currentBets = [];
     timer = 30;
     isSpinning = false;
-    io.emit('newBet', currentBets);
+    io.emit('newBet', { bets: [], totalBank: 0 });
   }, 10000);
 }
 
 io.on('connection', (socket) => {
+  onlineCount++;
+  io.emit('onlineUpdate', onlineCount);
+
   socket.on('initPlayer', (data) => {
     if (!players[data.id]) players[data.id] = 1000;
     socket.emit('updateBalance', players[data.id]);
@@ -72,26 +73,39 @@ io.on('connection', (socket) => {
 
   socket.on('placeBet', (data) => {
     if (isSpinning) return;
+    const amount = parseFloat(data.amount);
+    if (isNaN(amount) || amount <= 0) return;
+
     let balance = players[data.id] || 1000;
-    if (balance >= data.amount) {
-      players[data.id] = balance - data.amount;
-      currentBets.push({ id: data.id, name: data.name, amount: data.amount, photo: data.photo });
-      io.emit('newBet', currentBets);
+    if (balance >= amount) {
+      players[data.id] = balance - amount;
+      
+      let existing = currentBets.find(b => b.id === data.id);
+      if (existing) {
+        existing.amount += amount;
+      } else {
+        currentBets.push({ 
+          id: data.id, 
+          name: data.name, 
+          amount: amount, 
+          color: colors[currentBets.length % colors.length] 
+        });
+      }
+      
+      const totalBank = currentBets.reduce((sum, b) => sum + b.amount, 0);
+      io.emit('newBet', { bets: currentBets, totalBank });
       socket.emit('updateBalance', players[data.id]);
     }
   });
+
+  socket.on('disconnect', () => { onlineCount--; io.emit('onlineUpdate', onlineCount); });
 });
 
-bot.command("start", async (ctx) => {
-  await ctx.reply("PvP Рулетка: Баланс 1000 TON", {
+bot.command("start", (ctx) => {
+  ctx.reply("🎰 PvP Рулетка: Баланс 1000 TON зачислен!", {
     reply_markup: new InlineKeyboard().webApp("Играть 🎮", "https://onrender.com"), 
   });
 });
 
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
-
-const port = process.env.PORT || 3000;
-server.listen(port, "0.0.0.0", () => {
-  console.log('Сервер запущен на порту ${port}');
-});
+server.listen(process.env.PORT || 3000);
 bot.start();
