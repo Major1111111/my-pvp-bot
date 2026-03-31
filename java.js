@@ -11,12 +11,11 @@ const io = new Server(server);
 
 app.use(express.static(__dirname));
 
-let players = {}; // Балансы игроков { userId: 1000 }
-let currentBets = []; // Ставки в текущем раунде
+let players = {}; 
+let currentBets = []; 
 let timer = 30;
 let isSpinning = false;
 
-// Игровой цикл (каждые 30 секунд)
 setInterval(() => {
   if (timer > 0) {
     timer--;
@@ -28,14 +27,13 @@ setInterval(() => {
 
 function startDraw() {
   if (currentBets.length < 2) {
-    timer = 30; // Ждем игроков
+    timer = 30; 
     return;
   }
 
   isSpinning = true;
   const totalBank = currentBets.reduce((sum, b) => sum + b.amount, 0);
   
-  // Логика выбора победителя (чем больше ставка, тем выше шанс)
   let random = Math.random() * totalBank;
   let currentSum = 0;
   let winner = currentBets[0];
@@ -48,7 +46,7 @@ function startDraw() {
     }
   }
 
-  // Начисляем выигрыш
+  // ИСПРАВЛЕНО: добавлен логический оператор ||
   players[winner.id] = (players[winner.id] || 1000) + totalBank;
 
   io.emit('winnerInfo', { 
@@ -58,7 +56,6 @@ function startDraw() {
     bets: currentBets 
   });
 
-  // Сброс раунда через 10 сек после анимации
   setTimeout(() => {
     currentBets = [];
     timer = 30;
@@ -67,7 +64,6 @@ function startDraw() {
 }
 
 io.on('connection', (socket) => {
-  // При подключении выдаем 1000 TON если новый игрок
   socket.on('initPlayer', (data) => {
     if (!players[data.id]) players[data.id] = 1000;
     socket.emit('updateBalance', players[data.id]);
@@ -75,8 +71,8 @@ io.on('connection', (socket) => {
 
   socket.on('placeBet', (data) => {
     if (isSpinning) return;
-    if (players[data.id] >= data.amount) {
-      players[data.id] -= data.amount;
+    if ((players[data.id] || 1000) >= data.amount) {
+      players[data.id] = (players[data.id] || 1000) - data.amount;
       currentBets.push({ id: data.id, name: data.name, amount: data.amount, photo: data.photo });
       io.emit('newBet', currentBets);
       socket.emit('updateBalance', players[data.id]);
@@ -94,9 +90,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// ИСПРАВЛЕНО: добавлены || и обратные кавычки
 const port = process.env.PORT || 3000;
 server.listen(port, "0.0.0.0", () => {
-  console.log('Сервер запущен на порту ${port}');
+  console.log(Сервер запущен на порту ${port});
 });
 
 bot.start();
