@@ -96,7 +96,7 @@ app.get('/', (req, res) => {
 
 const port = process.env.PORT || 3000;
 server.listen(port, "0.0.0.0", () => {
-  console.log(Сервер запущен на порту ${port});
+  console.log('Сервер запущен на порту ${port}');
 });
 
 bot.start();
