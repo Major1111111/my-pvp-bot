@@ -3,69 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mini App</title>
-    <!-- Подключаем библиотеку Socket.io из интернета -->
-    <script src="https://socket.io"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        #wheel { width: 100px; height: 100px; background: #ccc; margin: 20px auto; border-radius: 50%; transition: 0.5s; }
-        #bet-list { margin-top: 20px; text-align: left; max-width: 300px; margin-left: auto; margin-right: auto; }
-        .bet-item { border-bottom: 1px dotted #888; padding: 5px 0; }
-    </style>
+    <title>PvP Рулетка</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Подключите ваш CSS файл, если он есть -->
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-
-    <div id="wheel">КОЛЕСО</div>
-    
-    <input type="number" id="amount" placeholder="Сумма в TON">
-    <button onclick="bet()">Сделать ставку</button>
-
-    <div id="bet-list">
-        <strong>Последние ставки:</strong>
+    <div id="app">
+        <h1>🎰 PvP Рулетка</h1>
+        <div id="balance">Ваш баланс: 1000 TON</div>
+        <div id="bets">
+            <h2>Ставки</h2>
+            <ul id="betList"></ul>
+        </div>
+        <div id="timer">Время до розыгрыша: 30</div>
+        <input type="number" id="betAmount" placeholder="Введите сумму ставки" />
+        <button id="placeBet">Сделать ставку</button>
+        <div id="winner"></div>
+        <div id="onlineCount">Онлайн: 0</div>
     </div>
 
     <script>
-        // 1. Инициализация сокета
-        const socket = io(); 
+        const socket = io();
+        let playerId = Math.random().toString(36).substr(2, 9); // Генерация уникального ID игрока
 
-        // 2. Обработка новых ставок (обновление списка на экране)
-        socket.on('newBet', function(data) {
-            const list = document.getElementById('bet-list'); 
-            if (list) {
-                const betItem = document.createElement('div');
-                betItem.className = 'bet-item';
-                // Используем обычные кавычки и плюсики, чтобы не путаться
-                betItem.innerText = data.player + ": " + data.amount + " TON"; 
-                list.appendChild(betItem);
-            }
+        socket.emit('initPlayer', { id: playerId });
+
+        socket.on('updateBalance', (balance) => {
+            document.getElementById('balance').innerText = 'Ваш баланс: ${balance} TON';
         });
 
-        // 3. Функция самой ставки
-        function bet() {
-            // ВЕЗДЕ исправлено на getElementById (буква L, не единица)
-            const amountInput = document.getElementById('amount');
-            const wheel = document.getElementById('wheel');
-
-            if (!amountInput || !amountInput.value) {
-                alert("Введите сумму ставки!");
-                return;
-            }
-
-            const amountValue = amountInput.value;
-
-            // Отправляем данные на сервер
-            socket.emit('placeBet', { 
-                player: 'Игрок', 
-                amount: amountValue 
+        socket.on('newBet', ({ bets, totalBank }) => {
+            const betList = document.getElementById('betList');
+            betList.innerHTML = '';
+            bets.forEach(bet => {
+                const li = document.createElement('li');
+                li.innerText = '${bet.name} ставит ${bet.amount} TON';
+                li.style.color = bet.color;
+                betList.appendChild(li);
             });
+            document.getElementById('timer').innerText = 'Время до розыгрыша: ${totalBank}';
+        });
 
-            // Визуал: меняем цвет колеса на зеленый
-            if (wheel) {
-                wheel.style.background = "#4CAF50";
+        socket.on('timerUpdate', ({ timer }) => {
+            document.getElementById('timer').innerText = 'Время до розыгрыша: ${timer}';
+        });
+
+        socket.on('winnerInfo', ({ winner, totalBank }) => {
+            document.getElementById('winner').innerText = 'Победитель: ${winner.name}, выигрыш: ${totalBank} TON';
+        });
+
+        socket.on('onlineUpdate', (count) => {
+            document.getElementById('onlineCount').innerText = 'Онлайн: ${count}';
+        });
+
+        document.getElementById('placeBet').addEventListener('click', () => {
+            const amount = parseFloat(document.getElementById('betAmount').value);
+            if (!isNaN(amount) && amount > 0) {
+                socket.emit('placeBet', '{ id: playerId, name: Игрок ${playerId}, amount }');
+                document.getElementById('betAmount').value = ''; // Очистить поле ввода
             }
-            
-            console.log("Ставка отправлена: " + amountValue);
-        }
+        });
     </script>
 </body>
 </html>
