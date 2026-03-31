@@ -1,106 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем библиотеку сокетов -->
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { background: #1a1a1a; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 20px; }
-        
-        /* Стиль счетчика онлайна */
-        .online-badge {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            margin-bottom: 20px;
-            border: 1px solid #333;
-        }
-        .dot {
-            height: 8px;
-            width: 8px;
-            background-color: #00ff00;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            box-shadow: 0 0 10px #00ff00;
-        }
-
-        .wheel { 
-            width: 250px; 
-            height: 250px; 
-            border: 5px solid gold; 
-            border-radius: 50%; 
-            margin: 20px auto; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); 
-            background: radial-gradient(circle, #2a2a2a, #1a1a1a);
-        }
-
-        .bet-btn { 
-            padding: 15px 30px; 
-            background: gold; 
-            border: none; 
-            font-weight: bold; 
-            cursor: pointer; 
-            border-radius: 10px;
-            font-size: 18px;
-            text-transform: uppercase;
-        }
-        
-        #status { margin: 20px 0; color: #bbb; }
-    </style>
-</head>
-<body>
-    <!-- Счетчик игроков -->
-    <div class="online-badge">
-        <span class="dot"></span> Игроков в сети: <span id="online-counter">1</span>
-    </div>
-
-    <h1>PvP РУЛЕТКА</h1>
-    <div id="status">Создай ставку или жди игрока</div>
-    
-    <div class="wheel" id="wheel">🎰</div>
-    
-    <button class="bet-btn" onclick="makeBet()">ПОСТАВИТЬ 100 💸</button>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        // Инициализация сокетов
-        const socket = io();
-        const onlineDisplay = document.getElementById('online-counter');
-
-        // Слушаем обновление онлайна от сервера
-        socket.on('updateOnline', (count) => {
-            onlineDisplay.innerText = count;
+socket.on('timerUpdate', (data) => {
+            let s = data.timer < 10 ? '0' + data.timer : data.timer;
+            document.getElementById('timer').innerText = 00:${s};
+            if(data.isSpinning) document.getElementById('status').innerText = "Идет розыгрыш!";
         });
 
-        function makeBet() {
-            // Отправляем данные боту
-            tg.sendData(JSON.stringify({action: 'bet', amount: 100}));
-            document.getElementById('status').innerText = "Ставка принята! Ждем противника...";
+        socket.on('newBet', (bets) => {
+            const container = document.getElementById('players-on-wheel');
+            container.innerHTML = '';
+            document.getElementById('status').innerText = Ставок в раунде: ${bets.length};
             
-            // ВАЖНО: tg.sendData обычно закрывает Mini App. 
-            // Если хочешь оставить окно открытым, лучше использовать socket.emit('newBet', {amount: 100});
-        }
+            // Отображаем аватарки на круге
+            bets.forEach((bet, index) => {
+                const img = document.createElement('img');
+                img.src = bet.photo || 'https://placeholder.com';
+                img.className = player-img p${index + 1};
+                container.appendChild(img);
+            });
+        });
 
-        function spinWheel(winner) {
+        socket.on('winnerInfo', (data) => {
             const wheel = document.getElementById('wheel');
-            wheel.style.transform = "rotate(3600deg)";
+            const randomRotation = 1800 + Math.floor(Math.random() * 360); 
+            wheel.style.transform = rotate(${randomRotation}deg);
+
             setTimeout(() => {
-                alert("Победил: " + winner);
-                wheel.style.transition = "none";
-                wheel.style.transform = "rotate(0deg)";
-                setTimeout(() => wheel.style.transition = "transform 4s cubic-bezier(0.1, 0, 0.1, 1)", 50);
-            }, 4000);
+                tg.HapticFeedback.notificationOccurred('success');
+                alert(Победил ${data.winner.name}! Выигрыш: ${data.totalBank} TON);
+                wheel.style.transition = 'none';
+                wheel.style.transform = 'rotate(0deg)';
+                setTimeout(() => wheel.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.1, 1)', 100);
+                document.getElementById('players-on-wheel').innerHTML = '';
+            }, 5500);
+        });
+
+        function sendBet() {
+            socket.emit('placeBet', { 
+                id: user.id, 
+                name: user.first_name, 
+                amount: 100,
+                photo: user.photo_url
+            });
         }
     </script>
 </body>
