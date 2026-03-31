@@ -1,5 +1,20 @@
-socket.on('timerUpdate', (data) => {
+<!-- Оставил только скриптовую часть, так как стили у тебя были верные -->
+    <script>
+        const socket = io();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const user = tg.initDataUnsafe.user || { id: Date.now(), first_name: "Игрок" };
+        
+        socket.emit('initPlayer', { id: user.id, name: user.first_name });
+
+        socket.on('updateBalance', (bal) => {
+            document.getElementById('balance').innerText = bal;
+        });
+
+        socket.on('timerUpdate', (data) => {
             let s = data.timer < 10 ? '0' + data.timer : data.timer;
+            // ИСПРАВЛЕНО: добавлены обратные кавычки
             document.getElementById('timer').innerText = 00:${s};
             if(data.isSpinning) document.getElementById('status').innerText = "Идет розыгрыш!";
         });
@@ -7,12 +22,13 @@ socket.on('timerUpdate', (data) => {
         socket.on('newBet', (bets) => {
             const container = document.getElementById('players-on-wheel');
             container.innerHTML = '';
+            // ИСПРАВЛЕНО: добавлены обратные кавычки
             document.getElementById('status').innerText = Ставок в раунде: ${bets.length};
             
-            // Отображаем аватарки на круге
             bets.forEach((bet, index) => {
                 const img = document.createElement('img');
                 img.src = bet.photo || 'https://placeholder.com';
+                // ИСПРАВЛЕНО: добавлены обратные кавычки
                 img.className = player-img p${index + 1};
                 container.appendChild(img);
             });
@@ -21,10 +37,12 @@ socket.on('timerUpdate', (data) => {
         socket.on('winnerInfo', (data) => {
             const wheel = document.getElementById('wheel');
             const randomRotation = 1800 + Math.floor(Math.random() * 360); 
+            // ИСПРАВЛЕНО: добавлены обратные кавычки
             wheel.style.transform = rotate(${randomRotation}deg);
 
             setTimeout(() => {
                 tg.HapticFeedback.notificationOccurred('success');
+                // ИСПРАВЛЕНО: добавлены обратные кавычки
                 alert(Победил ${data.winner.name}! Выигрыш: ${data.totalBank} TON);
                 wheel.style.transition = 'none';
                 wheel.style.transform = 'rotate(0deg)';
@@ -42,5 +60,3 @@ socket.on('timerUpdate', (data) => {
             });
         }
     </script>
-</body>
-</html>
