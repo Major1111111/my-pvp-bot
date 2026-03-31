@@ -1,104 +1,59 @@
-[31.03.2026 16:21] Major: <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- Подключаем скрипт Telegram WebApp правильно -->
-    <script src="https://telegram.org"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра на колесе</title>
     <style>
-        body { background: #0f0f13; color: white; text-align: center; font-family: sans-serif; margin: 0; overflow: hidden; }
-        .header { padding: 15px; }
-        .balance-badge { background: #1c222d; padding: 10px; border-radius: 12px; border: 1px solid #333; display: inline-block; font-weight: bold; }
-        .game-container { position: relative; width: 260px; height: 260px; margin: 30px auto; }
-        .wheel-box { 
-            width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1c222d; 
-            position: relative; overflow: hidden; transition: transform 5s cubic-bezier(0.1, 0, 0.1, 1); 
-            background: #2a2a2a; 
+        /* Стили для колеса и интерфейса */
+        #wheel {
+            width: 300px;
+            height: 300px;
+            border: 10px solid #000;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+            transition: background 0.5s;
         }
-        .wheel-center { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 80px; height: 80px; background: #000; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; z-index: 10; border: 3px solid #fff; font-size: 22px; font-weight: bold;
+        #bet-list {
+            margin-top: 20px;
         }
-        .player-img { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 2px solid white; z-index: 5; }
-        .p1 { top: 15px; left: 50%; transform: translateX(-50%); }
-        .p2 { bottom: 15px; left: 50%; transform: translateX(-50%); }
-        .bet-btn { background: #0088cc; color: white; border: none; padding: 15px; border-radius: 12px; font-size: 18px; font-weight: bold; width: 85%; margin-top: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="header"><div class="balance-badge">БАЛАНС: <span id="balance">1000</span> TON</div></div>
-    <div class="game-container">
-        <div class="wheel-center" id="timer">00:30</div>
-        <div class="wheel-box" id="wheel"><div id="players-on-wheel"></div></div>
-    </div>
-    <div id="status" style="margin-bottom: 10px; color: #888;">Ожидание ставок...</div>
-    <button class="bet-btn" onclick="sendBet()">СТАВКА 100 TON</button>
+    <h1>Игра на колесе</h1>
+    <div id="wheel"></div>
+    
+    <input type="number" id="amount" placeholder="Введите сумму ставки" />
+    <button onclick="bet()">Сделать ставку</button>
 
+    <div id="bet-list"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Инициализация сокета и Telegram WebApp
-        const socket = io(); // Исправлено: теперь точно буква i
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        // Получаем данные пользователя
-        const user = tg.initDataUnsafe.user || { id: Date.now(), first_name: "Игрок" };
+        const socket = io();
 
-        socket.emit('initPlayer', { id: user.id, name: user.first_name });
+        socket.on('newBet', (data) => {
+            const list = document.getElementById('bet-list');
+            const betItem = document.createElement('div');
+            betItem.innerText = '${data.player}: ${data.amount} TON'; // Использование шаблонных строк
+            list.appendChild(betItem);
 
-        socket.on('updateBalance', (bal) => { 
-            document.getElementById('balance').innerText = bal; 
-        });
-
-        socket.on('timerUpdate', (data) => {
-            let s = data.timer < 10 ? "0" + data.timer : data.timer;
-            document.getElementById('timer').innerText = "00:" + s;
-        });
-
-        socket.on('newBet', (bets) => {
+            // Обновление колеса или других элементов UI в зависимости от ставок
             const wheel = document.getElementById('wheel');
-            const container = document.getElementById('players-on-wheel');
-            container.innerHTML = '';
-
-            if (bets.length === 0) {
-                wheel.style.background = "#2a2a2a";
-                document.getElementById('status').innerText = "Ставок пока нет";
-            } else if (bets.length === 1) {
-                wheel.style.background = "conic-gradient(#0044ff 0% 100%)";
-                document.getElementById('status').innerText = "Ждем противника...";
-            } else {
-                wheel.style.background = "conic-gradient(#0044ff 0% 50%, #ff2a2a 50% 100%)";
-                document.getElementById('status').innerText = "В игре: " + bets.length;
+            wheel.style.background = "#4CAF50"; // Измените цвет колеса для примера
+        });
+        
+        function bet() {
+            const amountInput = document.getElementById('amount');
+            const amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Введите корректную сумму.');
+                return;
             }
 
-                const img = document.createElement('img');
-                img.src = bet.photo || 'https://placeholder.com';
-                img.className = "player-img p" + (idx + 1);
-                container.appendChild(img);
-            });
-        ;
-
-        socket.on('winnerInfo', (data) => {
-            const wheel = document.getElementById('wheel');
-            wheel.style.transform = "rotate(" + data.rotation + "deg)";
-            setTimeout(() => {
-                alert("Победил " + data.winner.name + "! Банк: " + data.totalBank + " TON");
-                wheel.style.transition = 'none';
-                wheel.style.transform = 'rotate(0deg)';
-                setTimeout(() => {
-                    wheel.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.1, 1)';
-                }, 100);
-            }, 5500);
-        });
-
-        function sendBet() {
-            socket.emit('placeBet', { 
-                id: user.id, 
-                name: user.first_name, 
-                amount: 100, 
-                photo: user.photo_url 
-            });
+            socket.emit('placeBet', { player: 'Игрок', amount: amount }); // Замените 'Игрок' на актуальное имя игрока
+            amountInput.value = ''; // Очистка поля ввода
         }
     </script>
 </body>
