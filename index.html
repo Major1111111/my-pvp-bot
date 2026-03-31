@@ -3,66 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PvP Рулетка</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Подключите ваш CSS файл, если он есть -->
-    <script src="/socket.io/socket.io.js"></script>
+    <title>Рулетка</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        #wheel {
+            width: 300px;
+            height: 300px;
+            border: 16px solid #333;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        .slot {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            background-color: red;
+            transform-origin: 100% 100%;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <h1>🎰 PvP Рулетка</h1>
-        <div id="balance">Ваш баланс: 1000 TON</div>
-        <div id="bets">
-            <h2>Ставки</h2>
-            <ul id="betList"></ul>
-        </div>
-        <div id="timer">Время до розыгрыша: 30</div>
-        <input type="number" id="betAmount" placeholder="Введите сумму ставки" />
-        <button id="placeBet">Сделать ставку</button>
-        <div id="winner"></div>
-        <div id="onlineCount">Онлайн: 0</div>
-    </div>
 
-    <script>
-        const socket = io();
-        let playerId = Math.random().toString(36).substr(2, 9); // Генерация уникального ID игрока
+<h1>Рулетка</h1>
+<div id="wheel">
+    <div class="slot" style="transform: rotate(0deg);">0</div>
+    <div class="slot" style="transform: rotate(30deg);">1</div>
+    <div class="slot" style="transform: rotate(60deg);">2</div>
+    <div class="slot" style="transform: rotate(90deg);">3</div>
+    <div class="slot" style="transform: rotate(120deg);">4</div>
+    <div class="slot" style="transform: rotate(150deg);">5</div>
+    <div class="slot" style="transform: rotate(180deg);">6</div>
+    <div class="slot" style="transform: rotate(210deg);">7</div>
+    <div class="slot" style="transform: rotate(240deg);">8</div>
+    <div class="slot" style="transform: rotate(270deg);">9</div>
+    <div class="slot" style="transform: rotate(300deg);">10</div>
+    <div class="slot" style="transform: rotate(330deg);">11</div>
+</div>
 
-        socket.emit('initPlayer', { id: playerId });
+<button onclick="spinWheel()">Крутить!</button>
 
-        socket.on('updateBalance', (balance) => {
-            document.getElementById('balance').innerText = 'Ваш баланс: ${balance} TON';
-        });
+<script>
+    function spinWheel() {
+        const wheel = document.getElementById('wheel');
+        const randomDegree = Math.floor(Math.random() * 360) + 720; // минимум два полных оборота
+        wheel.style.transition = 'transform 4s ease-out';
+        wheel.style.transform = 'rotate(${randomDegree}deg)'; // Исправлено на использование обратных кавычек
+    }
+</script>
 
-        socket.on('newBet', ({ bets, totalBank }) => {
-            const betList = document.getElementById('betList');
-            betList.innerHTML = '';
-            bets.forEach(bet => {
-                const li = document.createElement('li');
-                li.innerText = '${bet.name} ставит ${bet.amount} TON';
-                li.style.color = bet.color;
-                betList.appendChild(li);
-            });
-            document.getElementById('timer').innerText = 'Время до розыгрыша: ${totalBank}';
-        });
-
-        socket.on('timerUpdate', ({ timer }) => {
-            document.getElementById('timer').innerText = 'Время до розыгрыша: ${timer}';
-        });
-
-        socket.on('winnerInfo', ({ winner, totalBank }) => {
-            document.getElementById('winner').innerText = 'Победитель: ${winner.name}, выигрыш: ${totalBank} TON';
-        });
-
-        socket.on('onlineUpdate', (count) => {
-            document.getElementById('onlineCount').innerText = 'Онлайн: ${count}';
-        });
-
-        document.getElementById('placeBet').addEventListener('click', () => {
-            const amount = parseFloat(document.getElementById('betAmount').value);
-            if (!isNaN(amount) && amount > 0) {
-                socket.emit('placeBet', '{ id: playerId, name: Игрок ${playerId}, amount }');
-                document.getElementById('betAmount').value = ''; // Очистить поле ввода
-            }
-        });
-    </script>
 </body>
 </html>
