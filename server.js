@@ -7,6 +7,7 @@ class Player {
 
     placeBet(amount, type, numbers) {
         if (amount > this.balance) {
+            // ИСПОЛЬЗУЕМ ОБРАТНЫЕ КАВЫЧКИ 
             console.log('${this.name} не может поставить ${amount}. Недостаточно средств.');
             return false;
         }
@@ -30,7 +31,6 @@ class Roulette {
 
     placeBet(player, amount, type, numbers) {
         if (player.placeBet(amount, type, numbers)) {
-            // Проверяем количество ставок
             const totalBets = this.players.reduce((count, p) => count + p.bets.length, 0);
             if (totalBets === 2 && !this.timer) {
                 this.startTimer();
@@ -47,7 +47,7 @@ class Roulette {
     }
 
     spinRoulette() {
-        const winningNumber = Math.floor(Math.random() * 37); // Рулетка от 0 до 36
+        const winningNumber = Math.floor(Math.random() * 37);
         console.log('Рулетка крутится... Выигрышный номер: ${winningNumber}');
         this.determineWinners(winningNumber);
         this.endGame();
@@ -56,15 +56,18 @@ class Roulette {
     determineWinners(winningNumber) {
         this.players.forEach(player => {
             player.bets.forEach(bet => {
-                const payouts = { straight: 35, split: 17, street: 11 }; // Выплаты для различных типов ставок
-                const winnings = bet.numbers.includes(winningNumber) ? bet.amount * (payouts[bet.type] || 0) : 0;
+                const payouts = { straight: 35, split: 17, street: 11 };
+                const isWin = bet.numbers.includes(winningNumber);
+                const winnings = isWin ? bet.amount * (payouts[bet.type] || 0) : 0;
+                
                 if (winnings > 0) {
-                    player.balance += winnings + bet.amount; // Возвращаем ставку и добавляем выигрыш
-                    console.log('${player.name} выиграл ${winnings} за ставку на ${bet.type}: ${bet.numbers.join(", ")}. Новый баланс: ${player.balance}');
+                    player.balance += winnings + bet.amount;
+                    console.log('${player.name} выиграл ${winnings}. Новый баланс: ${player.balance}');
                 } else {
-                    console.log('${player.name} проиграл ставку на ${bet.type}: ${bet.numbers.join(", ")}.');
+                    console.log('${player.name} проиграл ставку на ${bet.type}.');
                 }
             });
+            player.bets = []; // Очищаем ставки после игры
         });
     }
 
@@ -72,10 +75,11 @@ class Roulette {
         clearTimeout(this.timer);
         this.timer = null;
         console.log("Игра завершена. Подсчет результатов...");
+        // Чтобы сервер не умирал на Render, он должен что-то "слушать" (например HTTP порт)
     }
 }
 
-// Пример использования
+// Инициализация
 const roulette = new Roulette();
 const player1 = new Player("Игрок 1");
 const player2 = new Player("Игрок 2");
@@ -83,6 +87,12 @@ const player2 = new Player("Игрок 2");
 roulette.addPlayer(player1);
 roulette.addPlayer(player2);
 
-// Игроки делают ставки
 roulette.placeBet(player1, 100, "straight", [7]);
 roulette.placeBet(player2, 200, "split", [17, 18]);
+
+// ВАЖНО: Для Render добавьте простой сервер, чтобы процесс не закрывался
+const http = require('http');
+http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end("Roulette Bot is running!");
+}).listen(process.env.PORT || 3000);
