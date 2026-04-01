@@ -1,96 +1,102 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
-// 1. Настройка порта для Render
-const PORT = process.env.PORT || 10000;
+let players = {}; 
+let gameState = {
+    status: 'waiting', 
+    timer: 30,
+    totalBank: 0,
+    bets: []
+};
 
-app.get('/', (req, res) => {
-    res.send('Игра "Рулетка" запущена и работает!');
-});
+const INITIAL_BALANCE = 10.0;
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log('Сервер активен на порту ${PORT}. Render увидит открытый порт.');
-});
-
-// --- Ваша логика игры ---
-
-class Player {
-    constructor(name) {
-        this.name = name;
-        this.balance = 10; 
-        this.currentBet = 0;
-    }
-
-    placeBet(amount) {
-        if (amount <= 0 || amount > this.balance) {
-            console.log('Ошибка: ${this.name} ввел недопустимую сумму.');
-            return;
+io.on('connection', (socket) => {
+    socket.on('join', (userData) => {
+        const id = userData.id;
+        if (!players[id]) {
+            players[id] = {
+                id: id,
+                name: userData.first_name || 'Игрок',
+                balance: INITIAL_BALANCE
+            };
         }
-        this.currentBet = amount;
-        this.balance -= amount;
-    }
+        socket.emit('init_data', { user: players[id], gameState });
+    });
 
-    win(amount) {
-        this.balance += amount;
-    }
+    socket.on('place_bet', (data) => {
+        const { userId, amount } = data;
+        const player = players[userId];
+        const betAmount = parseFloat(amount);
 
-    resetBet() {
-        this.currentBet = 0;
-    }
-}
-
-class RouletteGame {
-    constructor() {
-        this.players = [];
-        this.roundTime = 30; 
-    }
-
-    addPlayer(name) {
-        const player = new Player(name);
-        this.players.push(player);
-    }
-
-    startRound() {
-        console.log("===> Раунд начался! У игроков есть 30 секунд для ставок.");
-        setTimeout(() => this.endRound(), this.roundTime * 1000);
-    }
-
-    endRound() {
-        const totalBet = this.players.reduce((sum, player) => sum + player.currentBet, 0);
-        
-        if (totalBet === 0) {
-            console.log("===> Никакие ставки не были сделаны.");
-            // Запускаем проверку снова через 30 сек
-            setTimeout(() => this.startRound(), 5000);
+        if (!player || betAmount < 0.1 || player.balance < betAmount || gameState.status === 'spinning') {
             return;
         }
 
-        const winnerIndex = Math.floor(Math.random() * this.players.length);
-        const winner = this.players[winnerIndex];
+        player.balance -= betAmount;
         
-        // Исправлено: используем обратные кавычки  для вывода переменных
-        console.log('===> Победитель: ${winner.name}');
-        
-        const winAmount = totalBet;
-        winner.win(winAmount);
+        const newBet = {
+            userId,
+            amount: betAmount,
+            name: player.name,
+            color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        };
 
-        this.players.forEach(player => {
-            console.log( '===> [${player.name}]: ${player.balance} тонн' );
-            player.resetBet();
-        });
+        gameState.bets.push(newBet);
+        gameState.totalBank += betAmount;
 
-        // Запускаем новый раунд
-        this.startRound();
-    }
+        if (gameState.bets.length === 1 && gameState.status === 'waiting') {
+            startTimer();
+        }
+
+        io.emit('update_game', { bets: gameState.bets, totalBank: gameState.totalBank });
+        socket.emit('update_balance', player.balance);
+    });
+});
+
+function startTimer() {
+    gameState.status = 'betting';
+    gameState.timer = 30;
+    const interval = setInterval(() => {
+        gameState.timer--;
+        io.emit('timer_tick', gameState.timer);
+        if (gameState.timer <= 0) {
+            clearInterval(interval);
+            calculateWinner();
+        }
+    }, 1000);
 }
 
-// Запуск игры
-const game = new RouletteGame();
-game.addPlayer("Игрок 1");
-game.addPlayer("Игрок 2");
+function calculateWinner() {
+    if (gameState.bets.length === 0) {
+        gameState.status = 'waiting';
+        return;
+    }
+    gameState.status = 'spinning';
+    let random = Math.random() * gameState.totalBank;
+    let currentRange = 0;
+    let winner = gameState.bets[0];
 
-// Имитация ставок для теста
-game.players[0].placeBet(5);
-game.players[1].placeBet(3);
+    for (let bet of gameState.bets) {
+        currentRange += bet.amount;
+        if (random <= currentRange) {
+            winner = bet;
+            break;
+        }
+    }
 
-game.startRound();
+    players[winner.userId].balance += gameState.totalBank;
+    io.emit('round_result', { winner, totalBank: gameState.totalBank });
+
+    setTimeout(() => {
+        gameState = { status: 'waiting', timer: 30, totalBank: 0, bets: [] };
+        io.emit('game_reset', gameState);
+    }, 8000);
+}
+
+server.listen(3000);
