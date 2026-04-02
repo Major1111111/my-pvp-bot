@@ -1,26 +1,54 @@
-const canvas = document.getElementById('wheelCanvas');
-const ctx = canvas.getContext('2d');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
-// Данные игроков (потом будем получать с сервера)
-let players = [
-    { name: "Ivan", bet: 500, color: "#FF5733" },
-    { name: "Dmitry", bet: 300, color: "#33FF57" },
-    { name: "Alex", bet: 200, color: "#3357FF" }
-];
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-let totalBet = players.reduce((sum, p) => sum + p.bet, 0);
-let startAngle = 0;
+app.use(express.static('public'));
 
-players.forEach(player => {
-    // Вычисляем размер сектора в радианах
-    let sliceAngle = (player.bet / totalBet) * 2 * Math.PI;
+let players = [];
+let timeLeft = 60;
+let isSpinning = false;
+
+// Таймер на сервере (один для всех)
+setInterval(() => {
+    if (timeLeft > 0 && !isSpinning) {
+        timeLeft--;
+        io.emit('timerUpdate', timeLeft); // Отправляем время всем игрокам
+    } else if (timeLeft === 0 && !isSpinning && players.length > 0) {
+        startSpin();
+    }
+}, 1000);
+
+function startSpin() {
+    isSpinning = true;
+    const winnerSeed = Math.random(); // Генерируем случайное число для победы
+    io.emit('startSpin', winnerSeed); // Команда всем браузерам: "КРУТИТЕ!"
     
-    ctx.beginPath();
-    ctx.fillStyle = player.color;
-    ctx.moveTo(canvas.width / 2, canvas.height / 2);
-    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, startAngle, startAngle + sliceAngle);
-    ctx.closePath();
-    ctx.fill();
-    
-    startAngle += sliceAngle;
+    // Через 10 секунд сбрасываем игру для нового раунда
+    setTimeout(() => {
+        players = [];
+        timeLeft = 60;
+        isSpinning = false;
+        io.emit('resetGame');
+    }, 10000);
+}
+
+io.on('connection', (socket) => {
+    // Отправляем новому игроку текущее состояние
+    socket.emit('init', { players, timeLeft });
+
+    // Когда кто-то делает ставку
+    socket.on('makeBet', (data) => {
+        if (!isSpinning) {
+            players.push(data);
+            io.emit('newBet', data); // Сообщаем всем о новой ставке
+        }
+    });
+});
+
+server.listen(3001, () => {
+    console.log('Сервер запущен! Адрес: http://localhost:3000');
 });
