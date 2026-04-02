@@ -49,6 +49,6 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3001, () => {
+server.listen(4000, () => {
     console.log('Сервер запущен! Адрес: http://localhost:3000');
 });
