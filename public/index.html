@@ -1,99 +1,179 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Online Jackpot</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
-        canvas { border: 5px solid #333; border-radius: 50%; margin-top: 20px; }
-        #ui { margin-top: 20px; }
-        .timer { font-size: 40px; color: #00ff96; }
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; }
+        
+        /* Контейнер колеса и стрелки */
+        #wheel-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-top: 50px;
+        }
+        
+        /* Стрелка сверху */
+        #pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #ff4444;
+            z-index: 10;
+        }
+
+        canvas { border: 10px solid #333; border-radius: 50%; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+
+        .timer { font-size: 60px; font-weight: bold; color: #00ff96; margin-top: 20px; }
+        
+        /* Панель игрока */
+        #ui { background: #252525; padding: 20px; border-radius: 15px; display: inline-block; margin-top: 20px; }
+        .balance-view { font-size: 24px; margin-bottom: 15px; color: #ffd700; }
+        input { padding: 10px; border-radius: 5px; border: none; width: 100px; margin: 5px; }
+        button { padding: 10px 20px; background: #00ff96; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #555; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="timer" id="timer">60</div>
-    <canvas id="wheel" width="400" height="400"></canvas>
 
-    <div id="ui">
-        <input type="text" id="name" placeholder="Имя">
-        <input type="number" id="amount" placeholder="Ставка">
-        <button onclick="sendBet()">Ставка!</button>
+    <div id="wheel-wrapper">
+        <div id="pointer"></div>
+        <canvas id="wheel" width="450" height="450"></canvas>
     </div>
 
-    <div id="playersList"></div>
+    <br>
+
+    <div id="ui">
+        <div class="balance-view">Ваш баланс: <span id="myBalanceDisplay">10000</span> ₽</div>
+        <input type="text" id="name" placeholder="Имя" maxlength="10">
+        <input type="number" id="amount" placeholder="Ставка" min="10">
+        <button id="betBtn" onclick="sendBet()">Сделать ставку</button>
+    </div>
 
     <script>
         const socket = io();
         const canvas = document.getElementById('wheel');
         const ctx = canvas.getContext('2d');
+        
         let players = [];
+        let myBalance = 10000; // Стартовый баланс
 
-        // Получаем время от сервера
+        // Обновление баланса на экране
+        function updateBalanceUI() {
+            document.getElementById('myBalanceDisplay').innerText = myBalance;
+        }
+
         socket.on('timerUpdate', (time) => {
             document.getElementById('timer').innerText = time;
         });
 
-        // Получаем начальные данные
         socket.on('init', (data) => {
             players = data.players;
             drawWheel(0);
         });
 
-        // Новая ставка от любого игрока
         socket.on('newBet', (bet) => {
             players.push(bet);
             drawWheel(0);
         });
 
-        // Команда на вращение
         socket.on('startSpin', (seed) => {
+            document.getElementById('betBtn').disabled = true;
             animateWheel(seed);
         });
 
         socket.on('resetGame', () => {
             players = [];
+            document.getElementById('betBtn').disabled = false;
             drawWheel(0);
         });
+
         function sendBet() {
             const name = document.getElementById('name').value;
             const amount = parseInt(document.getElementById('amount').value);
             const color = '#' + Math.floor(Math.random()*16777215).toString(16);
-            if(name && amount) {
-                socket.emit('makeBet', { name, amount, color });
+            if (!name) return alert("Введите имя");
+            if (isNaN(amount) || amount <= 0) return alert("Введите сумму");
+            
+            if (amount > myBalance) {
+                return alert("Недостаточно средств!");
             }
+
+            myBalance -= amount; // Отнимаем деньги
+            updateBalanceUI();
+            
+            socket.emit('makeBet', { name, amount, color });
         }
 
-        function drawWheel(angle) {
+        function drawWheel(rotation) {
             const total = players.reduce((s, p) => s + p.amount, 0);
-            ctx.clearRect(0,0,400,400);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 210;
+
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
             if(players.length === 0) {
-                ctx.beginPath(); ctx.fillStyle = '#333';
-                ctx.arc(200,200,190,0,Math.PI*2); ctx.fill();
+                ctx.beginPath();
+                ctx.fillStyle = '#333';
+                ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
+                ctx.fill();
                 return;
             }
-            let start = angle;
+
+            let startAngle = rotation - Math.PI/2; // Начинаем сверху
+
             players.forEach(p => {
-                const slice = (p.amount / total) * Math.PI * 2;
-                ctx.beginPath(); ctx.fillStyle = p.color;
-                ctx.moveTo(200,200);
-                ctx.arc(200,200,190,start, start + slice);
+                const sliceAngle = (p.amount / total) * Math.PI * 2;
+                
+                // Рисуем сектор
+                ctx.beginPath();
+                ctx.fillStyle = p.color;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
                 ctx.fill();
-                start += slice;
+                ctx.stroke();
+
+                // Рисуем первую букву имени
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 30px Arial";
+                // Рисуем букву на расстоянии от центра
+                ctx.fillText(p.name.charAt(0).toUpperCase(), radius - 40, 10);
+                ctx.restore();
+
+                startAngle += sliceAngle;
             });
         }
 
         function animateWheel(seed) {
-            let start = null;
-            const duration = 5000;
-            const totalRotation = (10 + seed * 10) * Math.PI * 2;
+            let startTime = null;
+            const duration = 7000; // 7 секунд кручения
+            const spins = 10; // Сколько полных кругов сделает
+            const finalRotation = (spins * Math.PI * 2) + (seed * Math.PI * 2);
 
             function step(timestamp) {
-                if (!start) start = timestamp;
-                const progress = Math.min((timestamp - start) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
-                drawWheel(ease * totalRotation);
-                if (progress < 1) requestAnimationFrame(step);
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                
+                // Эффект замедления (ease-out)
+                const ease = 1 - Math.pow(1 - progress, 4);
+                
+                drawWheel(ease * finalRotation);
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
             }
             requestAnimationFrame(step);
         }
