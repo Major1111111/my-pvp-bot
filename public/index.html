@@ -25,21 +25,38 @@
             overflow-x: hidden;
         }
 
-        /* Хедер */
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .p-count { font-size: 22px; font-weight: 800; }
-        .g-id { color: var(--text-grey); font-size: 14px; font-weight: bold; }
+        /* Обновленный Хедер */
+        .header-top { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin-top: 10px;
+            margin-bottom: 5px; 
+        }
+        .p-count { 
+            font-size: 20px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px;
+        }
 
-        /* Таймер и Колесо */
-        .timer-val { font-size: 48px; font-weight: 900; text-align: center; margin-bottom: 10px; }
+        /* Таймер */
+        .timer-val { 
+            font-size: 42px; 
+            font-weight: 900; 
+            text-align: center; 
+            margin-bottom: 20px; 
+            color: white;
+        }
+
+        /* Колесо */
         #wheel-wrapper { position: relative; width: 260px; height: 260px; margin: 0 auto 30px; }
-        canvas { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--bg-card); }
+        canvas { width: 100%; height: 100%; border-radius: 50%; border: 4px solid #2c2c2e; }
         #pointer { 
             position: absolute; top: -10px; left: 50%; transform: translateX(-50%); 
             width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 18px solid #ff3b30; z-index: 10; 
         }
 
-        /* КАРТОЧКА ИГРОКА (как на фото 1) */
+        /* Карточка игрока */
         .player-item {
             background: var(--bg-card);
             border-radius: 16px;
@@ -47,19 +64,15 @@
             margin-bottom: 10px;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
         .item-top { display: flex; justify-content: space-between; align-items: flex-start; }
         .item-user { display: flex; align-items: center; gap: 12px; }
         .item-user img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
-        .item-user .names { display: flex; flex-direction: column; }
-        .item-user .nick { font-weight: bold; font-size: 16px; }
+        .item-user .nick { font-weight: bold; font-size: 16px; display: block; }
         .item-user .role { color: var(--text-grey); font-size: 13px; }
-        
         .item-stats { text-align: right; }
         .item-stats .perc { font-weight: bold; font-size: 16px; }
         .item-stats .sum { color: var(--text-grey); font-size: 13px; margin-top: 4px; }
-
         .item-bet-badge {
             background: var(--ton-blue);
             width: fit-content;
@@ -72,91 +85,60 @@
             align-items: center;
             gap: 5px;
         }
-        /* ЭКРАН ПОБЕДИТЕЛЯ (как на фото 2) */
-        #winner-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 9999;
-            padding: 20px;
-            box-sizing: border-box;
-            flex-direction: column;
-        }
-        .win-header { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 30px; }
-        .win-header .close-x { position: absolute; right: 0; background: #333; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        
-        .win-title { font-size: 28px; font-weight: 800; margin-bottom: 25px; line-height: 1.2; }
-        
-        .win-user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .win-user-row .left { display: flex; align-items: center; gap: 10px; }
-        .win-user-row img { width: 40px; height: 40px; border-radius: 50%; }
-        .win-user-row .u-nick { font-weight: bold; }
-        .win-user-row .u-you { color: var(--win-green); font-size: 14px; display: block; }
-        .win-user-row .right { text-align: right; }
-        .win-user-row .win-amount { color: var(--win-green); font-weight: bold; font-size: 16px; }
-        .win-user-row .win-perc { color: var(--text-grey); font-size: 14px; }
 
-        .win-card-visual {
-            background: #1c1c1e;
-            border-radius: 20px;
-            flex-grow: 0;
-            height: 200px;
-            width: 130px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 15px;
-            margin-bottom: 40px;
-        }
-        .win-card-visual .ton-circle {
-            background: var(--ton-blue);
-            width: 70px; height: 70px;
-            border-radius: 50%;
-            margin: 30px auto 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 30px;
-        }
-        .win-card-visual .footer-sum {
-            font-size: 14px; font-weight: bold; text-align: center; border-top: 1px solid #333; padding-top: 10px;
-        }
-
-        .btn-done {
-            background: white; color: black;
-            width: 100%; padding: 18px;
-            border-radius: 16px; border: none;
-            font-size: 18px; font-weight: bold;
-            margin-top: auto;
-        }
-
-        /* ГЛАВНАЯ КНОПКА СТАВКИ */
+        /* НОВАЯ КНОПКА (КАК НА ФОТО 2) */
         .footer-bet-btn {
-            position: fixed; bottom: 20px; left: 15px; right: 15px;
+            position: fixed; bottom: 25px; left: 15px; right: 15px;
             z-index: 100;
         }
         #make-bet-btn {
-            background: var(--win-green); color: white;
-            width: 100%; padding: 18px;
-            border-radius: 16px; border: none;
-            font-size: 16px; font-weight: bold;
-            box-shadow: 0 5px 20px rgba(52, 199, 89, 0.3);
+            background: white; 
+            color: black;
+            width: 100%; 
+            padding: 18px;
+            border-radius: 18px; 
+            border: none;
+            font-size: 17px; 
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.1);
+            transition: transform 0.1s;
         }
+        #make-bet-btn:active { transform: scale(0.98); }
+        /* Экран победителя */
+        #winner-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; padding: 20px; box-sizing: border-box; flex-direction: column;
+        }
+        .win-header { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 30px; }
+        .close-x { position: absolute; right: 0; background: #333; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .win-title { font-size: 28px; font-weight: 800; margin-bottom: 25px; }
+        .win-user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .win-user-row img { width: 40px; height: 40px; border-radius: 50%; }
+        .win-amount { color: var(--win-green); font-weight: bold; }
+        .win-card-visual {
+            background: #1c1c1e; border-radius: 20px; height: 200px; width: 130px;
+            margin: 0 auto 40px; display: flex; flex-direction: column; justify-content: space-between; padding: 15px;
+        }
+        .ton-circle { background: var(--ton-blue); width: 70px; height: 70px; border-radius: 50%; margin: 30px auto 0; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        .footer-sum { font-size: 14px; font-weight: bold; text-align: center; border-top: 1px solid #333; padding-top: 10px; }
+        .btn-done { background: white; color: black; width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 18px; font-weight: bold; margin-top: auto; }
 
-        /* Модалка ввода */
+        /* Модалка */
         #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 10000; align-items:center; justify-content:center; }
-        .modal-body { background: var(--bg-card); padding: 25px; border-radius: 20px; width: 80%; }
-        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; font-size: 18px; text-align: center; margin: 15px 0; box-sizing: border-box; }
+        .modal-body { background: var(--bg-card); padding: 25px; border-radius: 20px; width: 85%; }
+        input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #000; color: #fff; font-size: 18px; text-align: center; margin: 15px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
+    <!-- Заменили undefined на PvP рулетка -->
     <div class="header-top">
-        <div class="p-count"><span id="p-count">0</span> Игрок</div>
-        <div class="g-id">ИГРА #<span id="g-id">000000</span></div>
+        <div class="p-count">PvP рулетка</div>
     </div>
 
-    <div class="timer-val" id="timer">30</div>
+    <!-- Исправили отображение таймера -->
+    <div class="timer-val" id="timer">--</div>
 
     <div id="wheel-wrapper">
         <div id="pointer"></div>
@@ -164,48 +146,43 @@
     </div>
 
     <div id="player-list"></div>
+
+    <!-- Белая кнопка как на фото -->
     <div class="footer-bet-btn">
-        <button id="make-bet-btn" onclick="openModal()">СДЕЛАТЬ СТАВКУ</button>
+        <button id="make-bet-btn" onclick="openModal()">Сделать ставку</button>
     </div>
 
-    <!-- ОКНО ПОБЕДИТЕЛЯ (ФОТО 2) -->
     <div id="winner-overlay">
         <div class="win-header">
-            <div class="g-id" style="font-size: 18px;">Игра #<span id="win-game-id">0</span></div>
+            <div style="color: #8e8e93; font-weight: bold;">Игра #<span id="win-game-id">0</span></div>
             <div class="close-x" onclick="closeWinner()">✕</div>
         </div>
-        
         <div class="win-title">Поздравляем! Ты<br>победил!</div>
-
         <div class="win-user-row">
-            <div class="left">
+            <div style="display:flex; align-items:center; gap:10px;">
                 <img id="win-u-img" src="">
                 <div>
-                    <span class="u-nick" id="win-u-nick">@name</span>
-                    <span class="u-you">Ты</span>
+                    <span id="win-u-nick" style="font-weight:bold;"></span><br>
+                    <span class="u-you" style="color:var(--win-green); font-size:13px;">Ты</span>
                 </div>
             </div>
-            <div class="right">
+            <div style="text-align:right;">
                 <div class="win-amount">Выиграл <span id="win-u-sum">0</span> TON</div>
-                <div class="win-perc" id="win-u-perc">0%</div>
+                <div id="win-u-perc" style="color:#8e8e93; font-size:14px;">0%</div>
             </div>
         </div>
-
         <div class="win-card-visual">
             <div class="ton-circle">💎</div>
             <div class="footer-sum">💎 <span id="win-card-sum">0</span> TON</div>
         </div>
-
         <button class="btn-done" onclick="closeWinner()">Готово</button>
     </div>
-
-    <!-- Модалка ввода ставки -->
     <div id="modal">
         <div class="modal-body">
-            <h3 style="margin:0">Сумма ставки</h3>
+            <h3 style="margin:0; text-align:center;">Сумма ставки</h3>
             <input type="number" id="bet-amount" placeholder="0.1" step="0.1">
-            <button onclick="confirmBet()" style="background:var(--win-green); width:100%; padding:14px; border-radius:10px; border:none; color:white; font-weight:bold;">ПОСТАВИТЬ</button>
-            <button onclick="closeModal()" style="background:none; color:#555; border:none; margin-top:10px; width:100%">Отмена</button>
+            <button onclick="confirmBet()" style="background:var(--win-green); width:100%; padding:16px; border-radius:12px; border:none; color:white; font-weight:bold; font-size:16px;">ПОСТАВИТЬ</button>
+            <button onclick="closeModal()" style="background:none; color:#8e8e93; border:none; margin-top:15px; width:100%; font-size:14px;">Отмена</button>
         </div>
     </div>
 
@@ -214,11 +191,10 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Тестовый пользователь (в реальном ТГ подставится настоящий)
         const user = tg.initDataUnsafe?.user || { 
-            username: "roos_ters", 
+            username: "User", 
             photo_url: "https://via.placeholder.com/100",
-            id: 12345 
+            id: Date.now()
         };
 
         const canvas = document.getElementById('wheel');
@@ -228,9 +204,8 @@
         let currentGameId = 0;
 
         socket.on('timerUpdate', (data) => {
+            // Теперь здесь обновляем только цифры, текст "PvP рулетка" остается
             document.getElementById('timer').innerText = data.timeLeft;
-            document.getElementById('p-count').innerText = data.playersCount;
-            document.getElementById('g-id').innerText = data.gameId;
             currentGameId = data.gameId;
         });
 
@@ -239,14 +214,17 @@
 
         socket.on('startSpin', (data) => {
             document.getElementById('make-bet-btn').disabled = true;
+            document.getElementById('make-bet-btn').style.opacity = "0.5";
             animateWheel(data.seed, data.winner, data.bank);
         });
 
         socket.on('resetGame', () => {
             players = [];
             document.getElementById('make-bet-btn').disabled = false;
+            document.getElementById('make-bet-btn').style.opacity = "1";
             updateUI();
         });
+
         function updateUI() {
             const list = document.getElementById('player-list');
             const total = players.reduce((s, p) => s + p.amount, 0);
@@ -266,9 +244,7 @@
                             <div class="sum">${p.amount.toFixed(1)} TON</div>
                         </div>
                     </div>
-                    <div class="item-bet-badge">
-                        <span>💎</span> ${p.amount.toFixed(1)}
-                    </div>
+                    <div class="item-bet-badge"><span>💎</span> ${p.amount.toFixed(1)}</div>
                 </div>
             `).join('');
 
@@ -281,7 +257,6 @@
             });
             drawWheel(0);
         }
-
         function drawWheel(rotation) {
             const total = players.reduce((s, p) => s + p.amount, 0);
             const centerX = 250, centerY = 250, radius = 240;
@@ -309,7 +284,22 @@
             });
         }
 
-               function showWinnerUI(winner, bank) {
+        function animateWheel(seed, winner, bank) {
+            let start = null;
+            const duration = 6000;
+            const totalRotation = (10 + seed) * Math.PI * 2;
+            function step(ts) {
+                if (!start) start = ts;
+                const progress = Math.min((ts - start) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 4);
+                drawWheel(ease * totalRotation);
+                if (progress < 1) requestAnimationFrame(step);
+                else showWinnerUI(winner, bank);
+            }
+            requestAnimationFrame(step);
+        }
+
+                function showWinnerUI(winner, bank) {
             const total = players.reduce((s, p) => s + p.amount, 0);
             const perc = ((winner.amount / total) * 100).toFixed(1);
             
@@ -342,14 +332,16 @@
 
         function confirmBet() {
             const amount = parseFloat(document.getElementById('bet-amount').value);
-            if (amount > 0) {
+            if (amount >= 0.1) {
                 socket.emit('makeBet', {
                     username: user.username,
-                    photo: user.photo_url,
+                    photo: user.photo_url || "https://via.placeholder.com/100",
                     amount: amount,
                     color: '#' + Math.floor(Math.random()*16777215).toString(16)
                 });
                 closeModal();
+            } else {
+                alert("Минимальная ставка 0.1 TON");
             }
         }
     </script>
