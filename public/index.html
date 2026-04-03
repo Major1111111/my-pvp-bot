@@ -1,384 +1,357 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Ответ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Molls Jackpot</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* Основное оформление страницы */
+        :root {
+            --bg-main: #0b0b0b;
+            --bg-card: #1c1c1e;
+            --ton-blue: #2481cc;
+            --text-grey: #8e8e93;
+            --win-green: #34c759;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            background: var(--bg-main);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            padding-bottom: 120px;
+            overflow-x: hidden;
         }
-        .content {
-            max-width: 800px;
+
+        /* Хедер */
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .p-count { font-size: 22px; font-weight: 800; }
+        .g-id { color: var(--text-grey); font-size: 14px; font-weight: bold; }
+
+        /* Таймер и Колесо */
+        .timer-val { font-size: 48px; font-weight: 900; text-align: center; margin-bottom: 10px; }
+        #wheel-wrapper { position: relative; width: 260px; height: 260px; margin: 0 auto 30px; }
+        canvas { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--bg-card); }
+        #pointer { 
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%); 
+            width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 18px solid #ff3b30; z-index: 10; 
+        }
+
+        /* КАРТОЧКА ИГРОКА (как на фото 1) */
+        .player-item {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .item-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .item-user { display: flex; align-items: center; gap: 12px; }
+        .item-user img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .item-user .names { display: flex; flex-direction: column; }
+        .item-user .nick { font-weight: bold; font-size: 16px; }
+        .item-user .role { color: var(--text-grey); font-size: 13px; }
+        
+        .item-stats { text-align: right; }
+        .item-stats .perc { font-weight: bold; font-size: 16px; }
+        .item-stats .sum { color: var(--text-grey); font-size: 13px; margin-top: 4px; }
+
+        .item-bet-badge {
+            background: var(--ton-blue);
+            width: fit-content;
+            padding: 6px 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        /* ЭКРАН ПОБЕДИТЕЛЯ (как на фото 2) */
+        #winner-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 9999;
+            padding: 20px;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+        .win-header { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 30px; }
+        .win-header .close-x { position: absolute; right: 0; background: #333; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        
+        .win-title { font-size: 28px; font-weight: 800; margin-bottom: 25px; line-height: 1.2; }
+        
+        .win-user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .win-user-row .left { display: flex; align-items: center; gap: 10px; }
+        .win-user-row img { width: 40px; height: 40px; border-radius: 50%; }
+        .win-user-row .u-nick { font-weight: bold; }
+        .win-user-row .u-you { color: var(--win-green); font-size: 14px; display: block; }
+        .win-user-row .right { text-align: right; }
+        .win-user-row .win-amount { color: var(--win-green); font-weight: bold; font-size: 16px; }
+        .win-user-row .win-perc { color: var(--text-grey); font-size: 14px; }
+
+        .win-card-visual {
+            background: #1c1c1e;
+            border-radius: 20px;
+            flex-grow: 0;
+            height: 200px;
+            width: 130px;
             margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 40px;
         }
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            overflow-x: auto;
+        .win-card-visual .ton-circle {
+            background: var(--ton-blue);
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            margin: 30px auto 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px;
         }
-        code {
-            background-color: #f4f4f4;
-            padding: 2px 4px;
+        .win-card-visual .footer-sum {
+            font-size: 14px; font-weight: bold; text-align: center; border-top: 1px solid #333; padding-top: 10px;
         }
+
+        .btn-done {
+            background: white; color: black;
+            width: 100%; padding: 18px;
+            border-radius: 16px; border: none;
+            font-size: 18px; font-weight: bold;
+            margin-top: auto;
+        }
+
+        /* ГЛАВНАЯ КНОПКА СТАВКИ */
+        .footer-bet-btn {
+            position: fixed; bottom: 20px; left: 15px; right: 15px;
+            z-index: 100;
+        }
+        #make-bet-btn {
+            background: var(--win-green); color: white;
+            width: 100%; padding: 18px;
+            border-radius: 16px; border: none;
+            font-size: 16px; font-weight: bold;
+            box-shadow: 0 5px 20px rgba(52, 199, 89, 0.3);
+        }
+
+        /* Модалка ввода */
+        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 10000; align-items:center; justify-content:center; }
+        .modal-body { background: var(--bg-card); padding: 25px; border-radius: 20px; width: 80%; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; font-size: 18px; text-align: center; margin: 15px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div class="content">
-        <p>Понял тебя! Давай доработаем логику: объединим ставки одного и того же игрока, введем ограничение на запуск (минимум 2 человека) и поправим отображение суммы.</p>
-<p>Вот обновленный код.</p>
-<h3>1. Серверная часть (<code>server.js</code>)</h3>
-<p>Здесь самое важное: проверка на существующего игрока и условие <code>players.length &gt;= 2</code> для запуска таймера.</p>
-<div class="codehilite"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">express</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">http</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
-<span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Server</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;socket.io&#39;</span><span class="p">);</span>
 
-<span class="kd">const</span><span class="w"> </span><span class="nx">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">express</span><span class="p">();</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="nx">app</span><span class="p">);</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">io</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Server</span><span class="p">(</span><span class="nx">server</span><span class="p">);</span>
-
-<span class="nx">app</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">express</span><span class="p">.</span><span class="k">static</span><span class="p">(</span><span class="s1">&#39;public&#39;</span><span class="p">));</span>
-
-<span class="kd">let</span><span class="w"> </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="kd">let</span><span class="w"> </span><span class="nx">timeLeft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">30</span><span class="p">;</span>
-<span class="kd">let</span><span class="w"> </span><span class="nx">isSpinning</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
-<span class="kd">let</span><span class="w"> </span><span class="nx">onlineCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
-
-<span class="nx">setInterval</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Таймер идет ТОЛЬКО если игроков 2 или больше</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">players</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">2</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="nx">isSpinning</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">timeLeft</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">timeLeft</span><span class="o">--</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">startSpin</span><span class="p">();</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;timerUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">timeLeft</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Если игроков мало, сбрасываем таймер на 30 и ждем</span>
-<span class="w">        </span><span class="nx">timeLeft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">30</span><span class="p">;</span>
-<span class="w">        </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;timerUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">timeLeft</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">},</span><span class="w"> </span><span class="mf">1000</span><span class="p">);</span>
-
-<span class="kd">function</span><span class="w"> </span><span class="nx">startSpin</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">isSpinning</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
-<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">winnerSeed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">();</span>
-<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">totalBank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">.</span><span class="nx">reduce</span><span class="p">((</span><span class="nx">s</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">cumulative</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
-<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nx">winner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">let</span><span class="w"> </span><span class="nx">p</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">players</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">cumulative</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">totalBank</span><span class="p">;</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">winnerSeed</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="nx">cumulative</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">winner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">;</span>
-<span class="w">            </span><span class="k">break</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;startSpin&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">seed</span><span class="o">:</span><span class="w"> </span><span class="nx">winnerSeed</span><span class="p">,</span><span class="w"> </span><span class="nx">winner</span><span class="o">:</span><span class="w"> </span><span class="nx">winner</span><span class="p">,</span><span class="w"> </span><span class="nx">bank</span><span class="o">:</span><span class="w"> </span><span class="nx">totalBank</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">    </span><span class="nx">setTimeout</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="w">        </span><span class="nx">timeLeft</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">30</span><span class="p">;</span>
-<span class="w">        </span><span class="nx">isSpinning</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
-<span class="w">        </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;resetGame&#39;</span><span class="p">);</span>
-<span class="w">    </span><span class="p">},</span><span class="w"> </span><span class="mf">12000</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="nx">io</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;connection&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">socket</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">onlineCount</span><span class="o">++</span><span class="p">;</span>
-<span class="w">    </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;onlineUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">onlineCount</span><span class="p">);</span>
-<span class="w">    </span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;init&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">players</span><span class="p">,</span><span class="w"> </span><span class="nx">timeLeft</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">    </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;makeBet&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">isSpinning</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
-
-<span class="w">        </span><span class="c1">// ЛОГИКА ОБЪЕДИНЕНИЯ: ищем игрока по username</span>
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">existingPlayer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">username</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">username</span><span class="p">);</span>
-<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">existingPlayer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">existingPlayer</span><span class="p">.</span><span class="nx">amount</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">amount</span><span class="p">;</span><span class="w"> </span><span class="c1">// Прибавляем ставку к существующей</span>
-<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">players</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span><span class="w"> </span><span class="c1">// Добавляем нового</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;updatePlayers&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">players</span><span class="p">);</span><span class="w"> </span><span class="c1">// Рассылаем обновленный список всем</span>
-<span class="w">    </span><span class="p">});</span>
-
-<span class="w">    </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;disconnect&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">onlineCount</span><span class="o">--</span><span class="p">;</span>
-<span class="w">        </span><span class="nx">io</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;onlineUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">onlineCount</span><span class="p">);</span>
-<span class="w">    </span><span class="p">});</span>
-<span class="p">});</span>
-
-<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mf">3000</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Server started&#39;</span><span class="p">));</span>
-</code></pre></div>
-
-<h3>2. Интерфейс (<code>public/index.html</code>)</h3>
-<p>Я изменил кнопку, чтобы она выглядела в точности как на твоем фото, и исправил вывод текста в списке игроков.</p>
-<div class="codehilite"><pre><span></span><code><span class="cp">&lt;!DOCTYPE html&gt;</span>
-<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
-<span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">meta</span> <span class="na">charset</span><span class="o">=</span><span class="s">&quot;UTF-8&quot;</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">meta</span> <span class="na">name</span><span class="o">=</span><span class="s">&quot;viewport&quot;</span> <span class="na">content</span><span class="o">=</span><span class="s">&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>Molls Jackpot<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;https://telegram.org/js/telegram-web-app.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;/socket.io/socket.io.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">style</span><span class="p">&gt;</span>
-<span class="w">        </span><span class="nt">body</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#000</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="kc">white</span><span class="p">;</span><span class="w"> </span><span class="k">font-family</span><span class="p">:</span><span class="w"> </span><span class="o">-</span><span class="n">apple-system</span><span class="p">,</span><span class="w"> </span><span class="kc">sans-serif</span><span class="p">;</span><span class="w"> </span><span class="k">margin</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">padding-bottom</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="p">#</span><span class="nn">online-badge</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">position</span><span class="p">:</span><span class="w"> </span><span class="kc">absolute</span><span class="p">;</span><span class="w"> </span><span class="k">top</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">left</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span>
-<span class="w">            </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="nb">rgba</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mf">0.1</span><span class="p">);</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="kt">px</span><span class="w"> </span><span class="mi">10</span><span class="kt">px</span><span class="p">;</span>
-<span class="w">            </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#00ff96</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="p">.</span><span class="nc">timer</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">font-weight</span><span class="p">:</span><span class="w"> </span><span class="kc">bold</span><span class="p">;</span><span class="w"> </span><span class="k">margin-top</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#fff</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">wait-msg</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#888</span><span class="p">;</span><span class="w"> </span><span class="k">margin-top</span><span class="p">:</span><span class="w"> </span><span class="mi">-10</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="p">#</span><span class="nn">wheel-wrapper</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">position</span><span class="p">:</span><span class="w"> </span><span class="kc">relative</span><span class="p">;</span><span class="w"> </span><span class="k">margin</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="kt">px</span><span class="w"> </span><span class="kc">auto</span><span class="p">;</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">height</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">#</span><span class="nn">pointer</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">position</span><span class="p">:</span><span class="w"> </span><span class="kc">absolute</span><span class="p">;</span><span class="w"> </span><span class="k">top</span><span class="p">:</span><span class="w"> </span><span class="mi">-10</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">left</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">transform</span><span class="p">:</span><span class="w"> </span><span class="nb">translateX</span><span class="p">(</span><span class="mi">-50</span><span class="kt">%</span><span class="p">);</span>
-<span class="w">            </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">height</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">border-left</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="kc">transparent</span><span class="p">;</span>
-<span class="w">            </span><span class="k">border-right</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="kc">transparent</span><span class="p">;</span><span class="w"> </span><span class="k">border-top</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#ff3b30</span><span class="p">;</span><span class="w"> </span><span class="k">z-index</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="nt">canvas</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">height</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#1c1c1e</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="c">/* СПИСОК ИГРОКОВ */</span>
-<span class="w">        </span><span class="p">#</span><span class="nn">player-list</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">margin</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="kc">auto</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">player-item</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">flex</span><span class="p">;</span><span class="w"> </span><span class="k">align-items</span><span class="p">:</span><span class="w"> </span><span class="kc">center</span><span class="p">;</span><span class="w"> </span><span class="k">justify-content</span><span class="p">:</span><span class="w"> </span><span class="kc">space-between</span><span class="p">;</span>
-<span class="w">            </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#1c1c1e</span><span class="p">;</span><span class="w"> </span><span class="k">margin-bottom</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">player-info</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">flex</span><span class="p">;</span><span class="w"> </span><span class="k">align-items</span><span class="p">:</span><span class="w"> </span><span class="kc">center</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">player-info</span><span class="w"> </span><span class="nt">img</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">35</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">height</span><span class="p">:</span><span class="w"> </span><span class="mi">35</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">margin-right</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#333</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">player-name</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">font-weight</span><span class="p">:</span><span class="w"> </span><span class="mi">600</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">player-bet</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">text-align</span><span class="p">:</span><span class="w"> </span><span class="kc">right</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">amount-txt</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#00ff96</span><span class="p">;</span><span class="w"> </span><span class="k">font-weight</span><span class="p">:</span><span class="w"> </span><span class="kc">bold</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">percent-txt</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#888</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="c">/* КНОПКА КАК НА ФОТО */</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">btn-container</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">position</span><span class="p">:</span><span class="w"> </span><span class="kc">fixed</span><span class="p">;</span><span class="w"> </span><span class="k">bottom</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">left</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">right</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="w">            </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="nb">linear-gradient</span><span class="p">(</span><span class="kc">to</span><span class="w"> </span><span class="kc">top</span><span class="p">,</span><span class="w"> </span><span class="mh">#000</span><span class="w"> </span><span class="mi">80</span><span class="kt">%</span><span class="p">,</span><span class="w"> </span><span class="kc">transparent</span><span class="p">);</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">#</span><span class="nn">add-bet-btn</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#00c853</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="kc">white</span><span class="p">;</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">18</span><span class="kt">px</span><span class="p">;</span>
-<span class="w">            </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">font-weight</span><span class="p">:</span><span class="w"> </span><span class="kc">bold</span><span class="p">;</span>
-<span class="w">            </span><span class="k">box-shadow</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="mi">4</span><span class="kt">px</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="w"> </span><span class="nb">rgba</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">83</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">);</span><span class="w"> </span><span class="k">cursor</span><span class="p">:</span><span class="w"> </span><span class="kc">pointer</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">#</span><span class="nn">add-bet-btn</span><span class="p">:</span><span class="nd">disabled</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#333</span><span class="p">;</span><span class="w"> </span><span class="k">box-shadow</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="c">/* МОДАЛКА */</span>
-<span class="w">        </span><span class="p">#</span><span class="nn">modal</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">display</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="p">;</span><span class="w"> </span><span class="k">position</span><span class="p">:</span><span class="w"> </span><span class="kc">fixed</span><span class="p">;</span><span class="w"> </span><span class="k">top</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">left</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">height</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span>
-<span class="w">            </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="nb">rgba</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.9</span><span class="p">);</span><span class="w"> </span><span class="k">z-index</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span><span class="w"> </span><span class="k">align-items</span><span class="p">:</span><span class="w"> </span><span class="kc">center</span><span class="p">;</span><span class="w"> </span><span class="k">justify-content</span><span class="p">:</span><span class="w"> </span><span class="kc">center</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">modal-content</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#1c1c1e</span><span class="p">;</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">80</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="nt">input</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
-<span class="w">            </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">box-sizing</span><span class="p">:</span><span class="w"> </span><span class="kc">border-box</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span>
-<span class="w">            </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="kt">px</span><span class="w"> </span><span class="kc">solid</span><span class="w"> </span><span class="mh">#333</span><span class="p">;</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#000</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="mh">#fff</span><span class="p">;</span><span class="w"> </span><span class="k">font-size</span><span class="p">:</span><span class="w"> </span><span class="mi">18</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">text-align</span><span class="p">:</span><span class="w"> </span><span class="kc">center</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="nc">confirm-btn</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">background</span><span class="p">:</span><span class="w"> </span><span class="mh">#00c853</span><span class="p">;</span><span class="w"> </span><span class="k">color</span><span class="p">:</span><span class="w"> </span><span class="kc">white</span><span class="p">;</span><span class="w"> </span><span class="k">width</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="kt">%</span><span class="p">;</span><span class="w"> </span><span class="k">padding</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border-radius</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="k">border</span><span class="p">:</span><span class="w"> </span><span class="kc">none</span><span class="p">;</span><span class="w"> </span><span class="k">font-weight</span><span class="p">:</span><span class="w"> </span><span class="kc">bold</span><span class="p">;</span><span class="w"> </span><span class="k">margin-top</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="kt">px</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">    </span><span class="p">&lt;/</span><span class="nt">style</span><span class="p">&gt;</span>
-<span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
-<span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;online-badge&quot;</span><span class="p">&gt;</span>Online: <span class="p">&lt;</span><span class="nt">span</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;online-count&quot;</span><span class="p">&gt;</span>0<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;timer&quot;</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;timer&quot;</span><span class="p">&gt;</span>30<span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;wait-msg&quot;</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;status-msg&quot;</span><span class="p">&gt;</span>Ожидание игроков (минимум 2)...<span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;winner-text&quot;</span> <span class="na">style</span><span class="o">=</span><span class="s">&quot;color: #ffd700; font-weight: bold; margin-top: 10px; height: 20px;&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;wheel-wrapper&quot;</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;pointer&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">canvas</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;wheel&quot;</span> <span class="na">width</span><span class="o">=</span><span class="s">&quot;500&quot;</span> <span class="na">height</span><span class="o">=</span><span class="s">&quot;500&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">canvas</span><span class="p">&gt;</span>
-    <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;player-list&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;btn-container&quot;</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">button</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;add-bet-btn&quot;</span> <span class="na">onclick</span><span class="o">=</span><span class="s">&quot;openModal()&quot;</span><span class="p">&gt;</span>ДОБАВИТЬ СТАВКУ<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-    <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="cm">&lt;!-- Модальное окно --&gt;</span>
-    <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;modal&quot;</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">div</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;modal-content&quot;</span><span class="p">&gt;</span>
-            <span class="p">&lt;</span><span class="nt">h3</span> <span class="na">style</span><span class="o">=</span><span class="s">&quot;margin-top:0&quot;</span><span class="p">&gt;</span>Сумма ставки TON<span class="p">&lt;/</span><span class="nt">h3</span><span class="p">&gt;</span>
-            <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;number&quot;</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;bet-amount&quot;</span> <span class="na">placeholder</span><span class="o">=</span><span class="s">&quot;0.00&quot;</span> <span class="na">step</span><span class="o">=</span><span class="s">&quot;0.1&quot;</span><span class="p">&gt;</span>
-            <span class="p">&lt;</span><span class="nt">button</span> <span class="na">class</span><span class="o">=</span><span class="s">&quot;confirm-btn&quot;</span> <span class="na">onclick</span><span class="o">=</span><span class="s">&quot;confirmBet()&quot;</span><span class="p">&gt;</span>ПОСТАВИТЬ<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-            <span class="p">&lt;</span><span class="nt">button</span> <span class="na">onclick</span><span class="o">=</span><span class="s">&quot;closeModal()&quot;</span> <span class="na">style</span><span class="o">=</span><span class="s">&quot;background:none; color:#555; border:none; margin-top:15px; width:100%&quot;</span><span class="p">&gt;</span>Закрыть<span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
-        <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-    <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-
-    <span class="p">&lt;</span><span class="nt">script</span><span class="p">&gt;</span>
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">socket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">io</span><span class="p">();</span>
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">tg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">window</span><span class="p">.</span><span class="nx">Telegram</span><span class="p">.</span><span class="nx">WebApp</span><span class="p">;</span>
-<span class="w">        </span><span class="nx">tg</span><span class="p">.</span><span class="nx">expand</span><span class="p">();</span>
-
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">user</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">tg</span><span class="p">.</span><span class="nx">initDataUnsafe</span><span class="o">?</span><span class="p">.</span><span class="nx">user</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
-<span class="w">            </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">(),</span><span class="w"> </span>
-<span class="w">            </span><span class="nx">first_name</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;Игрок&quot;</span><span class="p">,</span><span class="w"> </span>
-<span class="w">            </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;player_&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mf">100</span><span class="p">),</span>
-<span class="w">            </span><span class="nx">photo_url</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;https://via.placeholder.com/100/00c853/ffffff?text=U&quot;</span><span class="w"> </span>
-<span class="w">        </span><span class="p">};</span>
-
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">canvas</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;wheel&#39;</span><span class="p">);</span>
-<span class="w">        </span><span class="kd">const</span><span class="w"> </span><span class="nx">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">canvas</span><span class="p">.</span><span class="nx">getContext</span><span class="p">(</span><span class="s1">&#39;2d&#39;</span><span class="p">);</span>
-<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="nx">images</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
-
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;onlineUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">count</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;online-count&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">count</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;timerUpdate&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
-<span class="w">            </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;timer&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">t</span><span class="p">;</span><span class="w"> </span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">players</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;status-msg&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Ожидание игроков (минимум 2)...&quot;</span><span class="p">;</span>
-<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;status-msg&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Игра скоро начнется!&quot;</span><span class="p">;</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">        </span><span class="p">});</span>
-
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;init&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">players</span><span class="p">;</span><span class="w"> </span><span class="nx">updateGame</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;updatePlayers&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">updatedPlayers</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">updatedPlayers</span><span class="p">;</span><span class="w"> </span><span class="nx">updateGame</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;startSpin&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;add-bet-btn&#39;</span><span class="p">).</span><span class="nx">disabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
-<span class="w">            </span><span class="nx">animateWheel</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">seed</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">winner</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">.</span><span class="nx">bank</span><span class="p">);</span>
-<span class="w">        </span><span class="p">});</span>
-
-<span class="w">        </span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;resetGame&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">players</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="w">            </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;add-bet-btn&#39;</span><span class="p">).</span><span class="nx">disabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
-<span class="w">            </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;winner-text&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">;</span>
-<span class="w">            </span><span class="nx">updateGame</span><span class="p">();</span>
-<span class="w">        </span><span class="p">});</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">updateGame</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">renderPlayerList</span><span class="p">();</span>
-<span class="w">            </span><span class="nx">preloadImages</span><span class="p">();</span>
-<span class="w">            </span><span class="nx">drawWheel</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">renderPlayerList</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;player-list&#39;</span><span class="p">);</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">.</span><span class="nx">reduce</span><span class="p">((</span><span class="nx">s</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
-
-<span class="w">            </span><span class="c1">// Исправлено: теперь выводится сумма ставки и шанс</span>
-<span class="w">            </span><span class="nx">list</span><span class="p">.</span><span class="nx">innerHTML</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="sb">`</span>
-<span class="sb">                &lt;div class=&quot;player-item&quot;&gt;</span>
-<span class="sb">                    &lt;div class=&quot;player-info&quot;&gt;</span>
-<span class="sb">                        &lt;img src=&quot;</span><span class="si">${</span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="si">}</span><span class="sb">&quot;&gt;</span>
-<span class="sb">                        &lt;span class=&quot;player-name&quot;&gt;@</span><span class="si">${</span><span class="nx">p</span><span class="p">.</span><span class="nx">username</span><span class="si">}</span><span class="sb">&lt;/span&gt;</span>
-<span class="sb">                    &lt;/div&gt;</span>
-<span class="sb">                    &lt;div class=&quot;player-bet&quot;&gt;</span>
-<span class="sb">                        &lt;div class=&quot;amount-txt&quot;&gt;</span><span class="si">${</span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">2</span><span class="p">)</span><span class="si">}</span><span class="sb"> TON&lt;/div&gt;</span>
-<span class="sb">                        &lt;div class=&quot;percent-txt&quot;&gt;</span><span class="si">${</span><span class="p">((</span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="o">/</span><span class="nx">total</span><span class="p">)</span><span class="o">*</span><span class="mf">100</span><span class="p">).</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">1</span><span class="p">)</span><span class="si">}</span><span class="sb">% шанс&lt;/div&gt;</span>
-<span class="sb">                    &lt;/div&gt;</span>
-<span class="sb">                &lt;/div&gt;</span>
-<span class="sb">            `</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">);</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">preloadImages</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nx">players</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">images</span><span class="p">[</span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="kd">const</span><span class="w"> </span><span class="nx">img</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Image</span><span class="p">();</span>
-<span class="w">                    </span><span class="nx">img</span><span class="p">.</span><span class="nx">src</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="p">;</span>
-<span class="w">                    </span><span class="nx">img</span><span class="p">.</span><span class="nx">onload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">drawWheel</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
-<span class="w">                    </span><span class="nx">images</span><span class="p">[</span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">img</span><span class="p">;</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">drawWheel</span><span class="p">(</span><span class="nx">rotation</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">players</span><span class="p">.</span><span class="nx">reduce</span><span class="p">((</span><span class="nx">s</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">s</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">centerX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">250</span><span class="p">,</span><span class="w"> </span><span class="nx">centerY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">250</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">240</span><span class="p">;</span>
-<span class="w">            </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">clearRect</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="mf">0</span><span class="p">,</span><span class="mf">500</span><span class="p">,</span><span class="mf">500</span><span class="p">);</span>
-
-<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="nx">players</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">beginPath</span><span class="p">();</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">fillStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;#1c1c1e&#39;</span><span class="p">;</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">arc</span><span class="p">(</span><span class="nx">centerX</span><span class="p">,</span><span class="w"> </span><span class="nx">centerY</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="o">*</span><span class="mf">2</span><span class="p">);</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">fill</span><span class="p">();</span>
-<span class="w">                </span><span class="k">return</span><span class="p">;</span>
-<span class="w">            </span><span class="p">}</span>
-
-<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="nx">startAngle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">rotation</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="o">/</span><span class="mf">2</span><span class="p">;</span>
-<span class="w">            </span><span class="nx">players</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="kd">const</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">amount</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">total</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2</span><span class="p">;</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">beginPath</span><span class="p">();</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">fillStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">color</span><span class="p">;</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">moveTo</span><span class="p">(</span><span class="nx">centerX</span><span class="p">,</span><span class="w"> </span><span class="nx">centerY</span><span class="p">);</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">arc</span><span class="p">(</span><span class="nx">centerX</span><span class="p">,</span><span class="w"> </span><span class="nx">centerY</span><span class="p">,</span><span class="w"> </span><span class="nx">radius</span><span class="p">,</span><span class="w"> </span><span class="nx">startAngle</span><span class="p">,</span><span class="w"> </span><span class="nx">startAngle</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">slice</span><span class="p">);</span>
-<span class="w">                </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">fill</span><span class="p">();</span>
-
-<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">images</span><span class="p">[</span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">save</span><span class="p">();</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">translate</span><span class="p">(</span><span class="nx">centerX</span><span class="p">,</span><span class="w"> </span><span class="nx">centerY</span><span class="p">);</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">rotate</span><span class="p">(</span><span class="nx">startAngle</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">slice</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2</span><span class="p">);</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">beginPath</span><span class="p">();</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">arc</span><span class="p">(</span><span class="nx">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.75</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">25</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="o">*</span><span class="mf">2</span><span class="p">);</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">clip</span><span class="p">();</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">drawImage</span><span class="p">(</span><span class="nx">images</span><span class="p">[</span><span class="nx">p</span><span class="p">.</span><span class="nx">photo</span><span class="p">],</span><span class="w"> </span><span class="nx">radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.75</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">25</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">25</span><span class="p">,</span><span class="w"> </span><span class="mf">50</span><span class="p">,</span><span class="w"> </span><span class="mf">50</span><span class="p">);</span>
-<span class="w">                    </span><span class="nx">ctx</span><span class="p">.</span><span class="nx">restore</span><span class="p">();</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">                </span><span class="nx">startAngle</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="nx">slice</span><span class="p">;</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">animateWheel</span><span class="p">(</span><span class="nx">seed</span><span class="p">,</span><span class="w"> </span><span class="nx">winner</span><span class="p">,</span><span class="w"> </span><span class="nx">bank</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="nx">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">7000</span><span class="p">;</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">totalRotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mf">15</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">seed</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2</span><span class="p">;</span>
-
-<span class="w">            </span><span class="kd">function</span><span class="w"> </span><span class="nx">step</span><span class="p">(</span><span class="nx">ts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">start</span><span class="p">)</span><span class="w"> </span><span class="nx">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ts</span><span class="p">;</span>
-<span class="w">                </span><span class="kd">const</span><span class="w"> </span><span class="nx">progress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">((</span><span class="nx">ts</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">start</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">duration</span><span class="p">,</span><span class="w"> </span><span class="mf">1</span><span class="p">);</span>
-<span class="w">                </span><span class="kd">const</span><span class="w"> </span><span class="nx">ease</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">pow</span><span class="p">(</span><span class="mf">1</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">progress</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">);</span>
-<span class="w">                </span><span class="nx">drawWheel</span><span class="p">(</span><span class="nx">ease</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">totalRotation</span><span class="p">);</span>
-<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">progress</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">1</span><span class="p">)</span><span class="w"> </span><span class="nx">requestAnimationFrame</span><span class="p">(</span><span class="nx">step</span><span class="p">);</span>
-<span class="w">                </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                    </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;winner-text&#39;</span><span class="p">).</span><span class="nx">innerText</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sb">`ПОБЕДИЛ @</span><span class="si">${</span><span class="nx">winner</span><span class="p">.</span><span class="nx">username</span><span class="si">}</span><span class="sb"> (+</span><span class="si">${</span><span class="nx">bank</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mf">2</span><span class="p">)</span><span class="si">}</span><span class="sb"> TON)`</span><span class="p">;</span>
-<span class="w">                </span><span class="p">}</span>
-<span class="w">            </span><span class="p">}</span>
-<span class="w">            </span><span class="nx">requestAnimationFrame</span><span class="p">(</span><span class="nx">step</span><span class="p">);</span>
-<span class="w">        </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">openModal</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;modal&#39;</span><span class="p">).</span><span class="nx">style</span><span class="p">.</span><span class="nx">display</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;flex&#39;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">closeModal</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;modal&#39;</span><span class="p">).</span><span class="nx">style</span><span class="p">.</span><span class="nx">display</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;none&#39;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-
-<span class="w">        </span><span class="kd">function</span><span class="w"> </span><span class="nx">confirmBet</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="kd">const</span><span class="w"> </span><span class="nx">amount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">parseFloat</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;bet-amount&#39;</span><span class="p">).</span><span class="nx">value</span><span class="p">);</span>
-<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">isNaN</span><span class="p">(</span><span class="nx">amount</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">amount</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;Введите сумму&quot;</span><span class="p">);</span>
-
-<span class="w">            </span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;makeBet&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
-<span class="w">                </span><span class="nx">username</span><span class="o">:</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">username</span><span class="p">,</span>
-<span class="w">                </span><span class="nx">photo</span><span class="o">:</span><span class="w"> </span><span class="nx">user</span><span class="p">.</span><span class="nx">photo_url</span><span class="p">,</span>
-<span class="w">                </span><span class="nx">amount</span><span class="o">:</span><span class="w"> </span><span class="nx">amount</span><span class="p">,</span>
-<span class="w">                </span><span class="nx">color</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;#&#39;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mf">16777215</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mf">16</span><span class="p">)</span>
-<span class="w">            </span><span class="p">});</span>
-<span class="w">            </span><span class="nx">closeModal</span><span class="p">();</span>
-<span class="w">            </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;bet-amount&#39;</span><span class="p">).</span><span class="nx">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">;</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
-<span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
-<span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
-</code></pre></div>
-
-<h3>Что было сделано:</h3>
-<ol>
-<li><strong>Объединение игроков</strong>: На сервере теперь стоит <code>players.find(p =&gt; p.username === data.username)</code>. Если ты ставишь 30 TON, а потом еще 30 — твой сектор на колесе просто увеличится до 60 TON, а не создастся новый.</li>
-<li><strong>Минимум 2 игрока</strong>: В <code>setInterval</code> на сервере добавлена проверка. Таймер начнет отсчет с 30 только тогда, когда в игру зайдет второй человек. Пока ты один — будет висеть надпись "Ожидание игроков".</li>
-<li><strong>Кнопка как на фото</strong>: Стиль <code>#add-bet-btn</code> теперь ярко-зеленый, с тенью, закругленный и зафиксирован внизу экрана.</li>
-<li><strong>Исправлен текст</strong>: В списке игроков теперь четко написано: <strong>Сумма в TON</strong> и <strong>Шанс в %</strong>.</li>
-<li><strong>ID в телеграме</strong>: Если ты открываешь через Telegram, он подтянет твой настоящий ник. Если просто через браузер — создаст случайного <code>player_XX</code>.</li>
-</ol>
-<p><strong>Чтобы проверить:</strong>
-Запусти сервер, открой страницу в двух разных вкладках браузера. В одной вкладке поставь ставку — таймер будет стоять. Поставь ставку во второй вкладке (под другим именем) — таймер пойдет! Поставь еще раз ставку в первой вкладке — увидишь, как твоя сумма и шанс увеличились.</p>
+    <div class="header-top">
+        <div class="p-count"><span id="p-count">0</span> Игрок</div>
+        <div class="g-id">ИГРА #<span id="g-id">000000</span></div>
     </div>
+
+    <div class="timer-val" id="timer">30</div>
+
+    <div id="wheel-wrapper">
+        <div id="pointer"></div>
+        <canvas id="wheel" width="500" height="500"></canvas>
+    </div>
+
+    <div id="player-list"></div>
+    <div class="footer-bet-btn">
+        <button id="make-bet-btn" onclick="openModal()">СДЕЛАТЬ СТАВКУ</button>
+    </div>
+
+    <!-- ОКНО ПОБЕДИТЕЛЯ (ФОТО 2) -->
+    <div id="winner-overlay">
+        <div class="win-header">
+            <div class="g-id" style="font-size: 18px;">Игра #<span id="win-game-id">0</span></div>
+            <div class="close-x" onclick="closeWinner()">✕</div>
+        </div>
+        
+        <div class="win-title">Поздравляем! Ты<br>победил!</div>
+
+        <div class="win-user-row">
+            <div class="left">
+                <img id="win-u-img" src="">
+                <div>
+                    <span class="u-nick" id="win-u-nick">@name</span>
+                    <span class="u-you">Ты</span>
+                </div>
+            </div>
+            <div class="right">
+                <div class="win-amount">Выиграл <span id="win-u-sum">0</span> TON</div>
+                <div class="win-perc" id="win-u-perc">0%</div>
+            </div>
+        </div>
+
+        <div class="win-card-visual">
+            <div class="ton-circle">💎</div>
+            <div class="footer-sum">💎 <span id="win-card-sum">0</span> TON</div>
+        </div>
+
+        <button class="btn-done" onclick="closeWinner()">Готово</button>
+    </div>
+
+    <!-- Модалка ввода ставки -->
+    <div id="modal">
+        <div class="modal-body">
+            <h3 style="margin:0">Сумма ставки</h3>
+            <input type="number" id="bet-amount" placeholder="0.1" step="0.1">
+            <button onclick="confirmBet()" style="background:var(--win-green); width:100%; padding:14px; border-radius:10px; border:none; color:white; font-weight:bold;">ПОСТАВИТЬ</button>
+            <button onclick="closeModal()" style="background:none; color:#555; border:none; margin-top:10px; width:100%">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Тестовый пользователь (в реальном ТГ подставится настоящий)
+        const user = tg.initDataUnsafe?.user || { 
+            username: "roos_ters", 
+            photo_url: "https://via.placeholder.com/100",
+            id: 12345 
+        };
+
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        let players = [];
+        let images = {};
+        let currentGameId = 0;
+
+        socket.on('timerUpdate', (data) => {
+            document.getElementById('timer').innerText = data.timeLeft;
+            document.getElementById('p-count').innerText = data.playersCount;
+            document.getElementById('g-id').innerText = data.gameId;
+            currentGameId = data.gameId;
+        });
+
+        socket.on('init', (data) => { players = data.players; updateUI(); });
+        socket.on('updatePlayers', (p) => { players = p; updateUI(); });
+
+        socket.on('startSpin', (data) => {
+            document.getElementById('make-bet-btn').disabled = true;
+            animateWheel(data.seed, data.winner, data.bank);
+        });
+
+        socket.on('resetGame', () => {
+            players = [];
+            document.getElementById('make-bet-btn').disabled = false;
+            updateUI();
+        });
+        function updateUI() {
+            const list = document.getElementById('player-list');
+            const total = players.reduce((s, p) => s + p.amount, 0);
+            
+            list.innerHTML = players.map(p => `
+                <div class="player-item">
+                    <div class="item-top">
+                        <div class="item-user">
+                            <img src="${p.photo}">
+                            <div class="names">
+                                <span class="nick">@${p.username}</span>
+                                <span class="role">${p.username === user.username ? 'Ты' : 'Игрок'}</span>
+                            </div>
+                        </div>
+                        <div class="item-stats">
+                            <div class="perc">${total > 0 ? ((p.amount/total)*100).toFixed(1) : 0}%</div>
+                            <div class="sum">${p.amount.toFixed(1)} TON</div>
+                        </div>
+                    </div>
+                    <div class="item-bet-badge">
+                        <span>💎</span> ${p.amount.toFixed(1)}
+                    </div>
+                </div>
+            `).join('');
+
+            players.forEach(p => {
+                if(!images[p.photo]) {
+                    const img = new Image(); img.src = p.photo;
+                    img.onload = () => drawWheel(0);
+                    images[p.photo] = img;
+                }
+            });
+            drawWheel(0);
+        }
+
+        function drawWheel(rotation) {
+            const total = players.reduce((s, p) => s + p.amount, 0);
+            const centerX = 250, centerY = 250, radius = 240;
+            ctx.clearRect(0,0,500,500);
+            if(players.length === 0) {
+                ctx.beginPath(); ctx.fillStyle = '#1c1c1e';
+                ctx.arc(centerX, centerY, radius, 0, Math.PI*2); ctx.fill();
+                return;
+            }
+            let startAngle = rotation - Math.PI/2;
+            players.forEach(p => {
+                const slice = (p.amount / total) * Math.PI * 2;
+                ctx.beginPath(); ctx.fillStyle = p.color;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + slice);
+                ctx.fill();
+                if (images[p.photo]) {
+                    ctx.save(); ctx.translate(centerX, centerY);
+                    ctx.rotate(startAngle + slice/2);
+                    ctx.beginPath(); ctx.arc(radius*0.75, 0, 25, 0, Math.PI*2); ctx.clip();
+                    ctx.drawImage(images[p.photo], radius*0.75-25, -25, 50, 50);
+                    ctx.restore();
+                }
+                startAngle += slice;
+            });
+        }
+
+               function showWinnerUI(winner, bank) {
+            const total = players.reduce((s, p) => s + p.amount, 0);
+            const perc = ((winner.amount / total) * 100).toFixed(1);
+            
+            document.getElementById('win-game-id').innerText = currentGameId;
+            document.getElementById('win-u-img').src = winner.photo;
+            
+            // ИСПРАВЛЕННАЯ СТРОКА (добавлены обратные кавычки):
+            document.getElementById('win-u-nick').innerText = `@${winner.username}`;
+            
+            document.getElementById('win-u-sum').innerText = bank.toFixed(2);
+            document.getElementById('win-card-sum').innerText = bank.toFixed(2);
+            document.getElementById('win-u-perc').innerText = perc + '%';
+            
+            const title = document.querySelector('.win-title');
+            if(winner.username === user.username) {
+                title.innerHTML = "Поздравляем! Ты<br>победил!";
+                document.querySelector('.u-you').style.display = 'block';
+            } else {
+                title.innerHTML = "Игра окончена!<br>Победитель:";
+                document.querySelector('.u-you').style.display = 'none';
+            }
+
+            document.getElementById('winner-overlay').style.display = 'flex';
+        }
+
+
+        function closeWinner() { document.getElementById('winner-overlay').style.display = 'none'; }
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function confirmBet() {
+            const amount = parseFloat(document.getElementById('bet-amount').value);
+            if (amount > 0) {
+                socket.emit('makeBet', {
+                    username: user.username,
+                    photo: user.photo_url,
+                    amount: amount,
+                    color: '#' + Math.floor(Math.random()*16777215).toString(16)
+                });
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
