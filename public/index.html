@@ -1,225 +1,220 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Molls Jackpot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Molls App</title>
+    <!-- Скрипт Телеграм -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { 
-            background: #121212; 
-            color: white; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            text-align: center; 
-            margin: 0; 
-            overflow: hidden;
+        body { background: #121212; color: white; font-family: sans-serif; margin: 0; text-align: center; }
+        
+        /* Кнопка Онлайн */
+        #online-badge {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(255,255,255,0.1); padding: 5px 12px;
+            border-radius: 20px; font-size: 14px; color: #00ff96;
         }
 
-        /* Таймер сверху */
-        .timer { font-size: 48px; font-weight: bold; color: #ffffff; margin-top: 20px; }
-
-        /* Контейнер рулетки */
-        #wheel-wrapper {
-            position: relative;
-            display: inline-block;
-            margin-top: 20px;
-            width: 90vw;
-            max-width: 400px;
-        }
-
+        .timer { font-size: 50px; font-weight: bold; margin-top: 30px; }
+        
+        #wheel-wrapper { position: relative; display: inline-block; margin: 20px 0; }
         #pointer {
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-top: 25px solid #ff4d4d; /* Красная стрелка как на фото */
-            z-index: 10;
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 25px solid #ff4d4d; z-index: 10;
+        }
+        canvas { border-radius: 50%; border: 8px solid #252525; max-width: 90vw; }
+        /* Список игроков */
+        #player-list {
+            margin: 20px auto; width: 90%; background: #1e1e1e;
+            border-radius: 15px; padding: 10px; text-align: left;
+        }
+        .player-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px; border-bottom: 1px solid #333;
+        }
+        .player-item img { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; }
+
+        /* Кнопка добавить ставку */
+        #add-bet-btn {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #00c853; color: white; padding: 15px 40px;
+            border-radius: 30px; font-weight: bold; border: none; font-size: 18px; width: 80%;
         }
 
-        canvas { 
-            width: 100%; 
-            height: auto; 
-            border: 8px solid #2a2a2a; 
-            border-radius: 50%; 
-            background: #1e1e1e;
+        /* Модальное окно */
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center;
         }
+        .modal-content { background: #252525; padding: 30px; border-radius: 20px; width: 80%; }
+        input { width: 90%; padding: 12px; margin: 15px 0; border-radius: 10px; border: none; font-size: 18px; }
 
-        /* Нижняя панель управления */
-        #controls {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #1e1e1e;
-            padding: 20px;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-        }
-
-        .balance-label {
-            color: #ffcc00; /* Желтый цвет как на фото */
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            background: white;
-            color: black;
-            font-size: 16px;
-            outline: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            background: #00c853; /* Зеленая кнопка */
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:disabled { background: #444; }
+        .winner-announcement { color: #ffd700; font-size: 20px; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <div id="online-badge">Онлайн: <span id="online-count">1</span></div>
     <div class="timer" id="timer">30</div>
+    <div id="winner-text" class="winner-announcement"></div>
 
     <div id="wheel-wrapper">
         <div id="pointer"></div>
         <canvas id="wheel" width="500" height="500"></canvas>
     </div>
 
-    <div id="controls">
-        <div class="balance-label">Ваш баланс: <span id="balance">100.00</span> TON</div>
-        <div class="input-row">
-            <input type="text" id="name" placeholder="Имя">
-            <input type="number" id="amount" placeholder="Ставка">
+    <div id="player-list"></div>
+
+    <button id="add-bet-btn" onclick="openModal()">ДОБАВИТЬ СТАВКУ</button>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h3>Ваша ставка (TON)</h3>
+            <input type="number" id="bet-amount" placeholder="0.1" step="0.1">
+            <button onclick="confirmBet()" style="background:#00c853; width:100%; padding:10px; border-radius:10px; border:none; color:white; font-weight:bold;">ПОДТВЕРДИТЬ</button>
+            <button onclick="closeModal()" style="background:none; color:gray; border:none; margin-top:10px;">Отмена</button>
         </div>
-        <button id="betBtn" onclick="sendBet()">Сделать ставку</button>
     </div>
 
     <script>
         const socket = io();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Данные пользователя (План Б включен здесь)
+        const user = tg.initDataUnsafe?.user || { 
+            id: 123, 
+            first_name: "Guest", 
+            username: "guest_user",
+            photo_url: "https://via.placeholder.com/100" 
+        };
+
         const canvas = document.getElementById('wheel');
         const ctx = canvas.getContext('2d');
-        
         let players = [];
-        let myBalance = 100.00; // Баланс в TON
+        let images = {}; // Кэш для аватарок
 
-        function updateUI() {
-            document.getElementById('balance').innerText = myBalance.toFixed(2);
-        }
-
+        socket.on('onlineUpdate', (count) => { document.getElementById('online-count').innerText = count; });
         socket.on('timerUpdate', (t) => { document.getElementById('timer').innerText = t; });
+        
+        socket.on('init', (data) => { players = data.players; updateGame(); });
+        socket.on('newBet', (bet) => { players.push(bet); updateGame(); });
 
-        socket.on('init', (data) => {
-            players = data.players;
-            drawWheel(0);
-        });
-
-        socket.on('newBet', (bet) => {
-            players.push(bet);
-            drawWheel(0);
-        });
-
-        socket.on('startSpin', (seed) => {
-            document.getElementById('betBtn').disabled = true;
-            animateWheel(seed);
+        socket.on('startSpin', (data) => {
+            document.getElementById('add-bet-btn').disabled = true;
+            animateWheel(data.seed, data.winner, data.bank);
         });
 
         socket.on('resetGame', () => {
             players = [];
-            document.getElementById('betBtn').disabled = false;
-            drawWheel(0);
+            document.getElementById('add-bet-btn').disabled = false;
+            document.getElementById('winner-text').innerText = "";
+            updateGame();
         });
 
-        function sendBet() {
-            const name = document.getElementById('name').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const color = '#' + Math.floor(Math.random()*16777215).toString(16);
+        function updateGame() {
+            renderPlayerList();
+            preloadImages();
+            drawWheel(0);
+        }
+        function renderPlayerList() {
+            const list = document.getElementById('player-list');
+            const total = players.reduce((s, p) => s + p.amount, 0);
+            list.innerHTML = players.map(p => `
+                <div class="player-item">
+                    <div style="display:flex; align-items:center;">
+                        <img src="${p.photo}">
+                        <span>@${p.username}</span>
+                    </div>
+                    <div><b>p.amount TON</b> <span style="color:#888; font-size:12px;">({(p.amount/total*100).toFixed(1)}%)</span></div>
+                </div>
+            `).join('');
+        }
 
-            if (!name || isNaN(amount) || amount <= 0) return alert("Заполните данные");
-            if (amount > myBalance) return alert("Мало TON на балансе!");
-
-            myBalance -= amount;
-            updateUI();
-            socket.emit('makeBet', { name, amount, color });
+        function preloadImages() {
+            players.forEach(p => {
+                if (!images[p.photo]) {
+                    const img = new Image();
+                    img.src = p.photo;
+                    img.onload = () => drawWheel(0);
+                    images[p.photo] = img;
+                }
+            });
         }
 
         function drawWheel(rotation) {
             const total = players.reduce((s, p) => s + p.amount, 0);
-            const centerX = 250;
-            const centerY = 250;
-            const radius = 240;
-
+            const centerX = 250, centerY = 250, radius = 240;
             ctx.clearRect(0,0,500,500);
 
             if(players.length === 0) {
-                ctx.beginPath();
-                ctx.fillStyle = '#2a2a2a';
-                ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.fillStyle = '#252525';
+                ctx.arc(centerX, centerY, radius, 0, Math.PI*2); ctx.fill();
                 return;
             }
 
             let startAngle = rotation - Math.PI/2;
-
             players.forEach(p => {
-                const sliceAngle = (p.amount / total) * Math.PI * 2;
-                
-                ctx.beginPath();
-                ctx.fillStyle = p.color;
+                const slice = (p.amount / total) * Math.PI * 2;
+                ctx.beginPath(); ctx.fillStyle = p.color;
                 ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + slice);
                 ctx.fill();
-                // Буква имени
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(startAngle + sliceAngle / 2);
-                ctx.textAlign = "right";
-                ctx.fillStyle = "white";
-                ctx.font = "bold 40px sans-serif";
-                ctx.fillText(p.name.charAt(0).toUpperCase(), radius - 30, 15);
-                ctx.restore();
 
-                startAngle += sliceAngle;
+                // Отрисовка аватарки
+                if (images[p.photo]) {
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(startAngle + slice / 2);
+                    
+                    // Круглая маска для аватарки
+                    ctx.beginPath();
+                    ctx.arc(radius * 0.7, 0, 25, 0, Math.PI*2);
+                    ctx.clip();
+                    ctx.drawImage(images[p.photo], radius * 0.7 - 25, -25, 50, 50);
+                    ctx.restore();
+                }
+                startAngle += slice;
             });
         }
 
-        function animateWheel(seed) {
+        function animateWheel(seed, winner, bank) {
             let start = null;
-            const duration = 8000;
-            const finalRotation = (15 + seed * 10) * Math.PI * 2;
+            const duration = 9000;
+            const totalRotation = (20 + seed) * Math.PI * 2;
 
             function step(ts) {
                 if (!start) start = ts;
                 const progress = Math.min((ts - start) / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 4);
-                drawWheel(ease * finalRotation);
+                drawWheel(ease * totalRotation);
                 if (progress < 1) requestAnimationFrame(step);
+                else {
+                    document.getElementById('winner-text').innerText = 'Победил @${winner.username}! Выигрыш: ${bank} TON';
+                }
             }
             requestAnimationFrame(step);
         }
 
-        updateUI();
+        // Функции модалки
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function confirmBet() {
+            const amount = parseFloat(document.getElementById('bet-amount').value);
+            if (isNaN(amount) || amount <= 0) return alert("Введите сумму");
+            
+            socket.emit('makeBet', {
+                username: user.username || user.first_name,
+                photo: user.photo_url,
+                amount: amount,
+                color: '#' + Math.floor(Math.random()*16777215).toString(16)
+            });
+            closeModal();
+        }
     </script>
 </body>
 </html>
