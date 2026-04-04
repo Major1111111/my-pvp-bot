@@ -1,0 +1,152 @@
+css
+body {
+background-color: #0f1011; /* Еще темнее, как на скрине */
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* Верхняя панель */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 400px;
+    margin-top: 15px;
+    }
+    .total-bank-badge {
+    background-color: #1c1d21;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #ffffff;
+}
+
+.total-bank-badge span {
+    color: #4da3ff; /* Голубой цвет для суммы */
+    margin-left: 5px;
+}
+
+.header-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #1c1d21;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    cursor: pointer;
+}
+
+/* Виджет баланса */
+.balance-widget-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+.balance-amount { font-size: 1.5em; font-weight: bold; }
+.blue-circle { background: #007bff; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+.white-circle { background: #fff; color: #000; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+
+/* РУЛЕТКА */
+.wheel-section {
+    position: relative;
+    width: 320px; /* Размер рулетки */
+    height: 320px;
+    margin: 40px 0;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+/* Указатель сверху */
+.pointer-triangle {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 25px solid #ffffff; /* Белый треугольник */
+    z-index: 10;
+}
+
+/* Центр с таймером */
+.center-timer-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150px; /* Размер черного круга */
+    height: 150px;
+    background-color: #000000;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5;
+}
+
+.timer-text {
+    font-size: 2em;
+    font-weight: bold;
+    color: #ffffff;
+    z-index: 6;
+}
+
+/* Прогресс-бар вокруг таймера (белая линия) */
+.timer-progress {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    transform: rotate(-90deg);
+}
+.timer-progress circle {
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 4;
+    stroke-dasharray: 440; /* 2 * PI * R */
+    stroke-dashoffset: 100; /* Управлять через JS для анимации */
+    stroke-linecap: round;
+}
+
+/* Список игроков */
+.players-section { width: 90%; max-width: 400px; margin-top: 20px; }
+.player-list { display: flex; flex-direction: column; gap: 10px; }
+.player-item { background: #1c1d21; padding: 10px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+.player-item img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #ffd700; }
+
+/* Кнопка */
+.make-bet-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 1.1em;
+    margin: 20px 0;
+    width: 90%;
+    max-width: 400px;
+}
+
+/* Оверлей победителя (упрощенно) */
+.winner-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+}
+.winner-card { background: #1c1d21; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid #ffd700; }
+.winner-card img { width: 80px; height: 80px; border-radius: 50%; margin: 10px; }
