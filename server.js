@@ -1,4 +1,3 @@
-javascript
 const socket = io();
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
