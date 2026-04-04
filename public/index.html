@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lucky Wheel</title>
+    <title>Lucky Wheel - Molls</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <!-- Подключаем библиотеки корректно -->
+    <script src="https://socket.io"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
-    <!-- Верхняя панель (Баланс и кнопки) -->
+    <!-- Верхняя панель -->
     <div class="header-container">
         <div class="header-icon">🕒</div>
         <div class="total-bank-badge">
@@ -19,7 +20,7 @@
         <div class="header-icon">💬</div>
     </div>
 
-    <!-- Контейнер виджета баланса (Твой личный баланс) -->
+    <!-- Баланс -->
     <div class="balance-widget-container">
         <div class="balance-item blue-circle">💎</div>
         <span id="user-balance" class="balance-amount">0.00</span>
@@ -27,17 +28,12 @@
     </div>
 
     <div class="game-container">
-        <!-- Секция рулетки как на скриншоте -->
         <div class="wheel-section">
-            <!-- Указатель (треугольник сверху) -->
             <div class="pointer-triangle"></div>
-            
             <canvas id="wheel" width="500" height="500"></canvas>
             
-            <!-- Центральный круг с таймером -->
             <div class="center-timer-circle">
                 <div id="timer" class="timer-text">00:00</div>
-                <!-- Можно добавить SVG для прогресс-бара вокруг таймера -->
                 <svg class="timer-progress">
                     <circle cx="75" cy="75" r="70"></circle>
                 </svg>
@@ -52,7 +48,7 @@
     </div>
 
     <!-- Модальное окно -->
-    <div id="modal" class="modal">
+    <div id="modal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close-button" id="close-bet-modal-btn">&times;</span>
             <h2>Сделать ставку</h2>
@@ -61,8 +57,8 @@
         </div>
     </div>
 
-    <!-- Оверлей победителя -->
-    <div id="winner-overlay" class="winner-overlay">
+    <!-- Победитель -->
+    <div id="winner-overlay" class="winner-overlay" style="display:none;">
         <div class="winner-card">
             <h2 class="win-title">Победа!</h2>
             <div class="winner-info">
@@ -74,6 +70,7 @@
         </div>
     </div>
 
-    <script src="server.js"></script>
+    <!-- Подключаем логику -->
+    <script src="app.js"></script>
 </body>
 </html>
