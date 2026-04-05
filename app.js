@@ -4,8 +4,8 @@ const path = require('path');
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-// --- ВАЖНАЯ СТРОЧКА: она заставляет сервер видеть ваши файлы (index.html, script.js) ---
-app.use(express.static(path.join(__dirname, 'public',index.html')); 
+// 1. Указываем Express, что статические файлы (CSS, JS, картинки) лежат в папке public
+app.use(express.static(path.join(__dirname, 'public')));
 
 let players = [];
 let timeLeft = 30; 
@@ -17,11 +17,12 @@ function formatTime(seconds) {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-// Главная страница
+// 2. Исправленный путь к главной странице (ищем index.html ВНУТРИ папки public)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Таймер и логика игры
 setInterval(() => {
     if (isSpinning) return;
 
@@ -66,7 +67,8 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 4001;
+// 3. Динамический порт для Render (обязательно process.env.PORT)
+const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
-    console.log(`Сервер запущен! Ссылка: http://localhost:${PORT}`);
+    console.log('Сервер запущен на порту ${PORT}');
 });
