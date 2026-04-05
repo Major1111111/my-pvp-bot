@@ -3,33 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lucky Wheel</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="/socket.io/socket.io.js"></script>
+    <title>Molls Game</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header { margin-top: 20px; font-size: 1.2rem; color: #4a9eff; }
+
+        /* Контейнер колеса - теперь он большой и по центру */
+        .wheel-container {
+            position: relative;
+            width: 85vw; /* 85% ширины экрана */
+            height: 85vw;
+            max-width: 350px;
+            max-height: 350px;
+            border: 5px solid #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        .wheel-text {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 20px;
+        }
+
+        .pointer {
+            width: 0; height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #fff;
+            position: absolute;
+            top: -10px;
+            z-index: 10;
+        }
+
+        .btn-bet {
+            width: 90%;
+            padding: 15px;
+            margin-bottom: 30px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation; /* Улучшает нажатия на мобилках */
+        }
+
+        .btn-bet:active { background-color: #1e7e34; transform: scale(0.98); }
+    </style>
 </head>
 <body>
+    <div class="header">ВСЕГО 0.00 TON</div>
 
-    <div class="header-container">
-        <div class="header-icon">🕒</div>
-        <div class="total-bank-badge">
-            ВСЕГО <span id="total-bank-amount">0.00</span> TON
-        </div>
-        <div class="header-icon">💬</div>
-    </div>
-    <div class="game-container">
-        <div class="wheel-section">
-            <div class="pointer-triangle"></div>
-            <canvas id="wheel" width="500" height="500"></canvas>
-            <div class="center-timer-circle">
-                <div id="timer" class="timer-text">00:30</div>
-            </div>
-        </div>
-
-        <div id="player-list" class="player-list"></div>
-
-        <button id="make-bet-btn" class="make-bet-button">Сделать ставку</button>
+    <div class="pointer"></div>
+    <div class="wheel-container" id="wheel">
+        <div class="wheel-text">Ожидание игроков...</div>
     </div>
 
-    <script src="script.js"></script>
+    <button class="btn-bet" id="betBtn">Сделать ставку</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Растянуть на весь экран ТГ
+
+        const socket = io();
+        const betBtn = document.getElementById('betBtn');
+        const wheel = document.getElementById('wheel');
+
+        betBtn.addEventListener('click', () => {
+            console.log("Кнопка нажата");
+            socket.emit('place_bet', { amount: 1 });
+            betBtn.innerText = "Ставка принята!";
+            betBtn.disabled = true;
+        });
+
+        socket.on('start_spin', (data) => {
+            wheel.style.transform = `rotate(${data.deg}deg)`;
+        });
+    </script>
 </body>
 </html>
