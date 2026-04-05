@@ -5,7 +5,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
 // --- ВАЖНАЯ СТРОЧКА: она заставляет сервер видеть ваши файлы (index.html, script.js) ---
-app.use(express.static(__dirname)); 
+app.use(express.static(path.join(__dirname, 'public',index.html')); 
 
 let players = [];
 let timeLeft = 30; 
