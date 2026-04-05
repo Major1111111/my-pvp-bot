@@ -1,88 +1,77 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-app.use(express.static(path.join(__dirname, 'public')));
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 
 let players = [];
-let timeLeft = 30; // Время до начала игры
+let timeLeft = 30; // Время таймера в секундах
 let isSpinning = false;
-let gameId = 123456;
 
-// Логика таймера
-setInterval(() => {
-    if (players.length > 0 && !isSpinning) {
-        timeLeft--;
-        if (timeLeft <= 0) {
-            startSpin();
-        }
-    }
-    io.emit('timerUpdate', { timeLeft: formatTime(timeLeft), gameId });
-}, 1000);
-
+// Функция для форматирования времени (0:30)
 function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
+
+// Главный цикл таймера (работает раз в секунду)
+setInterval(() => {
+    if (isSpinning) return;
+
+    if (players.length >= 2) {
+        // Если игроков 2 или больше — идет отсчет
+        timeLeft--;
+        
+        if (timeLeft <= 0) {
+            startSpin(); // Запуск рулетки
+        } else {
+            io.emit('timerUpdate', { 
+                text: formatTime(timeLeft), 
+                status: 'counting' 
+            });
+        }
+    } else {
+        // Если игроков меньше 2 — сброс таймера и режим ожидания
+        timeLeft = 30;
+        io.emit('timerUpdate', { 
+            text: 'Ожидание игроков...', 
+            status: 'waiting' 
+        });
+    }
+}, 1000);
 
 function startSpin() {
     isSpinning = true;
-    const totalBank = players.reduce((sum, p) => sum + p.amount, 0);
+    const winner = players[Math.floor(Math.random() * players.length)];
     
-    // Выбор победителя (случайно на основе веса ставки)
-    let random = Math.random() * totalBank;
-    let winner = players[0];
-    for (let p of players) {
-        if (random < p.amount) {
-            winner = p;
-            break;
-        }
-        random -= p.amount;
-    }
+    io.emit('startSpin', { winner });
 
-    const seed = Math.floor(Math.random() * 1000000);
-    io.emit('startSpin', { seed, winner, bank: totalBank * 0.95 }); // 5% комиссия
-
-    // Сброс через 10 секунд после начала вращения
+    // Сброс игры через 7 секунд после начала вращения
     setTimeout(() => {
         players = [];
-        timeLeft = 30;
         isSpinning = false;
-        gameId++;
-        io.emit('resetGame');
-    }, 10000);
+        timeLeft = 30;
+        io.emit('updatePlayers', players);
+    }, 7000);
 }
 
 io.on('connection', (socket) => {
-    console.log('User connected');
-    socket.emit('updatePlayers', players);
+    console.log('Новое подключение');
 
-    socket.on('makeBet', (data) => {
-        if (isSpinning) return;
-        
-        // Проверка: если игрок уже есть, добавляем к ставке
-        const existingPlayer = players.find(p => p.username === data.username);
-        if (existingPlayer) {
-            existingPlayer.amount += data.amount;
-        } else {
-            players.push({
-                username: data.username,
-                photo: data.photo,
-                amount: data.amount,
-                color: '#' + Math.floor(Math.random()*16777215).toString(16)
-            });
+    socket.on('joinGame', (userData) => {
+        // Простая проверка, чтобы не добавлять одного и того же
+        if (!players.find(p => p.id === userData.id)) {
+            players.push(userData);
+            io.emit('updatePlayers', players);
         }
-        io.emit('updatePlayers', players);
+    });
+
+    socket.on('disconnect', () => {
+        // Можно добавить удаление игрока при выходе, если нужно
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Сервер запущен: http://localhost:${PORT}`);
+http.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
