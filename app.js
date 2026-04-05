@@ -66,7 +66,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4001;
 http.listen(PORT, () => {
     console.log(`Сервер запущен! Ссылка: http://localhost:${PORT}`);
 });
