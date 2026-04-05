@@ -7,11 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Раздаем статические файлы (HTML, CSS, JS)
-app.use(express.static(__dirname));
+// Сообщаем Express, что статика (картинки, стили) в папке public
+app.use(express.static(path.join(__dirname, 'public')));
 
+// Отдаем главный файл из папки public
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // Логика игры через сокеты
 io.on('connection', (socket) => {
