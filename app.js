@@ -1,110 +1,88 @@
-const tg = window.Telegram.WebApp;
-tg.expand();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
 
-// Если сервер запущен на этом же домене, оставляем io(). 
-// Если сервер на другом порту, например 3000, пишем io('http://localhost:3000')
-const socket = io(); 
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-const canvas = document.getElementById('wheel');
-const ctx = canvas.getContext('2d');
+app.use(express.static(path.join(__dirname, 'public')));
+
 let players = [];
-let images = {};
+let timeLeft = 30; // Время до начала игры
+let isSpinning = false;
+let gameId = 123456;
 
-// Функция отрисовки колеса
-function drawWheel(rotation) {
-    const total = players.reduce((s, p) => s + p.amount, 0);
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = canvas.width / 2;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (players.length === 0) {
-        ctx.beginPath();
-        ctx.fillStyle = '#1c1d21';
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.fill();
-        return;
-    }
-
-    let startAngle = rotation - Math.PI / 2;
-
-    players.forEach(p => {
-        const sliceAngle = (p.amount / total) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.fillStyle = p.color || '#28a745';
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-        ctx.fill();
-        
-        const img = images[p.photo];
-        if (img && img.complete) {
-            ctx.save();
-            const middleAngle = startAngle + sliceAngle / 2;
-            const imgX = centerX + Math.cos(middleAngle) * (radius * 0.65);
-            const imgY = centerY + Math.sin(middleAngle) * (radius * 0.65);
-            ctx.beginPath();
-            ctx.arc(imgX, imgY, 30, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(img, imgX - 30, imgY - 30, 60, 60);
-            ctx.restore();
+// Логика таймера
+setInterval(() => {
+    if (players.length > 0 && !isSpinning) {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            startSpin();
         }
-        startAngle += sliceAngle;
-    });
-}
-
-// Слушатели событий от сервера
-socket.on('updatePlayers', (p) => {
-    players = p;
-    const total = players.reduce((s, p) => s + p.amount, 0);
-    const bankEl = document.getElementById('total-bank-amount');
-    if(bankEl) bankEl.innerText = total.toFixed(2);
-    
-    const list = document.getElementById('player-list');
-    if(list) {
-        // ИСПРАВЛЕНО: Добавлены обратные кавычки для формирования строки
-        list.innerHTML = players.map(p => 
-            <div class="player-item">
-                <img src="${p.photo || ''}" style="width:40px;height:40px;border-radius:50%;"/>
-                <span>@${p.username}</span>
-                <span>${p.amount} TON</span>
-            </div>
-        ).join('');
     }
+    io.emit('timerUpdate', { timeLeft: formatTime(timeLeft), gameId });
+}, 1000);
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function startSpin() {
+    isSpinning = true;
+    const totalBank = players.reduce((sum, p) => sum + p.amount, 0);
     
-    drawWheel(0);
+    // Выбор победителя (случайно на основе веса ставки)
+    let random = Math.random() * totalBank;
+    let winner = players[0];
+    for (let p of players) {
+        if (random < p.amount) {
+            winner = p;
+            break;
+        }
+        random -= p.amount;
+    }
+
+    const seed = Math.floor(Math.random() * 1000000);
+    io.emit('startSpin', { seed, winner, bank: totalBank * 0.95 }); // 5% комиссия
+
+    // Сброс через 10 секунд после начала вращения
+    setTimeout(() => {
+        players = [];
+        timeLeft = 30;
+        isSpinning = false;
+        gameId++;
+        io.emit('resetGame');
+    }, 10000);
+}
+
+io.on('connection', (socket) => {
+    console.log('User connected');
+    socket.emit('updatePlayers', players);
+
+    socket.on('makeBet', (data) => {
+        if (isSpinning) return;
+        
+        // Проверка: если игрок уже есть, добавляем к ставке
+        const existingPlayer = players.find(p => p.username === data.username);
+        if (existingPlayer) {
+            existingPlayer.amount += data.amount;
+        } else {
+            players.push({
+                username: data.username,
+                photo: data.photo,
+                amount: data.amount,
+                color: '#' + Math.floor(Math.random()*16777215).toString(16)
+            });
+        }
+        io.emit('updatePlayers', players);
+    });
 });
 
-// Таймер
-socket.on('timerUpdate', (data) => {
-    const timerEl = document.getElementById('timer');
-    if(timerEl) timerEl.innerText = data.timeLeft;
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Сервер запущен: http://localhost:${PORT}`);
 });
-
-// Работа с модальными окнами (кнопки из вашего HTML)
-const makeBetBtn = document.getElementById('make-bet-btn');
-if(makeBetBtn) {
-    makeBetBtn.onclick = () => {
-        const modal = document.getElementById('modal');
-        if(modal) modal.style.display = 'flex';
-    };
-}
-
-const closeBtn = document.getElementById('close-bet-modal-btn');
-if(closeBtn) {
-    closeBtn.onclick = () => {
-        const modal = document.getElementById('modal');
-        if(modal) modal.style.display = 'none';
-    };
-}
-
-const confirmBtn = document.getElementById('confirm-bet-btn');
-if(confirmBtn) {
-    confirmBtn.onclick = () => {
-        const amountInput = document.getElementById('bet-amount');
-        const amount = amountInput ? amountInput.value : 0;
-        socket.emit('placeBet', { amount: parseFloat(amount) });
-        const modal = document.getElementById('modal');
-        if(modal) modal.style.display = 'none';
-    };
-}
