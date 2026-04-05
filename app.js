@@ -1,74 +1,34 @@
 const express = require('express');
-const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
 const path = require('path');
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
 
-// 1. Указываем Express, что статические файлы (CSS, JS, картинки) лежат в папке public
-app.use(express.static(path.join(__dirname, 'public')));
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-let players = [];
-let timeLeft = 30; 
-let isSpinning = false;
+// Раздаем статические файлы (HTML, CSS, JS)
+app.use(express.static(__dirname));
 
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-}
-
-// 2. Исправленный путь к главной странице (ищем index.html ВНУТРИ папки public)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
-
-// Таймер и логика игры
-setInterval(() => {
-    if (isSpinning) return;
-
-    if (players.length >= 2) {
-        timeLeft--;
-        if (timeLeft <= 0) {
-            startSpin();
-        } else {
-            io.emit('timerUpdate', { 
-                text: formatTime(timeLeft), 
-                status: 'counting' 
-            });
-        }
-    } else {
-        timeLeft = 30;
-        io.emit('timerUpdate', { 
-            text: 'Ожидание игроков...', 
-            status: 'waiting' 
-        });
-    }
-}, 1000);
-
-function startSpin() {
-    isSpinning = true;
-    const winner = players[Math.floor(Math.random() * players.length)];
-    io.emit('startSpin', { winner });
-
-    setTimeout(() => {
-        players = [];
-        isSpinning = false;
-        timeLeft = 30;
-        io.emit('updatePlayers', players);
-    }, 7000);
-}
-
+// Логика игры через сокеты
 io.on('connection', (socket) => {
-    socket.on('joinGame', (userData) => {
-        if (!players.find(p => p.id === userData.id)) {
-            players.push(userData);
-            io.emit('updatePlayers', players);
-        }
+    console.log('Пользователь подключился:', socket.id);
+
+    socket.on('place_bet', (data) => {
+        console.log('Ставка получена:', data);
+        // Тут можно добавить логику начала игры, когда игроков станет 2+
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Пользователь отключился');
     });
 });
 
-// 3. Динамический порт для Render (обязательно process.env.PORT)
-const PORT = process.env.PORT || 4000;
-http.listen(PORT, () => {
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
     console.log('Сервер запущен на порту ${PORT}');
+    console.log('Для запуска в консоли пиши: node app.js');
 });
