@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // Определяем путь к папке public
-const publicPath = path.join(__dirname, '..', 'public');
+const publicPath = __dirname;
 
 // --- ОТЛАДОЧНЫЙ ЛОГ (потом удалим) ---
 console.log("Текущая папка (__dirname):", __dirname);
