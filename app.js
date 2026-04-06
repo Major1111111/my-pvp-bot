@@ -1,39 +1,43 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
-const fs = require('fs'); // Добавь этот модуль для проверки файлов
+const fs = require('fs');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+// Render сам назначает порт через process.env.PORT
+const PORT = process.env.PORT || 3000;
 
-// Определяем путь к папке public
-const publicPath = __dirname;
+// ПУТЬ К ПАПКЕ PUBLIC:
+// __dirname — это папка, где лежит этот файл (app.js). 
+// Мы просто добавляем к ней 'public'.
+const publicPath = path.join(__dirname, 'public');
 
-// --- ОТЛАДОЧНЫЙ ЛОГ (потом удалим) ---
-console.log("Текущая папка (__dirname):", __dirname);
-console.log("Ищу папку public по пути:", publicPath);
+// --- БЛОК ДИАГНОСТИКИ (поможет увидеть ошибки в логах) ---
+console.log('=== ДИАГНОСТИКА ЗАПУСКА ===');
+console.log('Текущая папка сервера:', __dirname);
+console.log('Пытаюсь найти папку public здесь:', publicPath);
 
 if (fs.existsSync(publicPath)) {
-    console.log("✅ Папка public найдена!");
-    console.log("Содержимое папки public:", fs.readdirSync(publicPath));
+    console.log('✅ Папка public найдена!');
+    console.log('Содержимое папки public:', fs.readdirSync(publicPath));
 } else {
-    console.log("❌ Папка public НЕ НАЙДЕНА по этому пути!");
-    console.log("Содержимое корня проекта:", fs.readdirSync(path.join(__dirname, '..')));
+    console.log('❌ ОШИБКА: Папка public НЕ НАЙДЕНА по пути:', publicPath);
 }
-// --------------------------------------
+console.log('============================');
+// --- КОНЕЦ БЛОКА ДИАГНОСТИКИ ---
 
+// Раздаем статические файлы из папки public
 app.use(express.static(publicPath));
 
-app.get('/', (req, res) => {
+// Если пользователь зашел на главную страницу, отдаем index.html
+app.get('*', (req, res) => {
     const indexPath = path.join(publicPath, 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
     } else {
-        res.status(404).send(`Файл index.html не найден по пути: ${indexPath}`);
+        res.status(404).send('Ошибка: Файл index.html не найден в папке public!');
     }
 });
 
-// ... дальше остальной код (io.on и т.д.)
-
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
