@@ -7,29 +7,47 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Сообщаем Express, что статика (картинки, стили) в папке public
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
-// Отдаем главный файл из папки public
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-// Логика игры через сокеты
+let players = []; // Список активных игроков
+let totalBank = 0;
+
 io.on('connection', (socket) => {
-    console.log('Пользователь подключился:', socket.id);
+    console.log('Игрок зашел:', socket.id);
 
     socket.on('place_bet', (data) => {
-        console.log('Ставка получена:', data);
-        // Тут можно добавить логику начала игры, когда игроков станет 2+
+        // Добавляем игрока
+        const betAmount = parseFloat(data.amount);
+        players.push({ id: socket.id, amount: betAmount });
+        totalBank += betAmount;
+
+        // Пересчитываем шансы для всех
+        players = players.map(p => ({
+            ...p,
+            chance: ((p.amount / totalBank) * 100).toFixed(1)
+        }));
+
+        // Отправляем всем обновленные данные
+        io.emit('update_game', { players, totalBank });
+
+        // Если игроков двое или больше — крутим через 3 секунды
+        if (players.length >= 2) {
+            const randomDeg = Math.floor(Math.random() * 360) + 1440; // Минимум 4 полных оборота
+            io.emit('start_spin', { deg: randomDeg });
+            
+            // Очищаем банк после игры (через 10 сек)
+            setTimeout(() => {
+                players = [];
+                totalBank = 0;
+            }, 10000);
+        }
     });
 
     socket.on('disconnect', () => {
-        console.log('Пользователь отключился');
+        players = players.filter(p => p.id !== socket.id);
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-    console.log('Для запуска в консоли пиши: node app.js');
+server.listen(3000, () => {
+    console.log('Сервер: http://localhost:3000');
 });
