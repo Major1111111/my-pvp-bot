@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,98 +8,106 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            height: 100vh;
-            overflow: hidden;
+            margin: 0; padding: 0; background-color: #121212; color: #fff;
+            font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; height: 100vh; overflow: hidden;
         }
 
-        .header { margin-top: 20px; font-size: 1.2rem; color: #4a9eff; }
+        .header { margin-top: 20px; font-size: 1.5rem; font-weight: bold; color: #00d2ff; }
 
-        /* Контейнер колеса - теперь он большой и по центру */
+        /* Блок статистики */
+        .stats-container {
+            display: flex; gap: 20px; background: #1e1e1e;
+            padding: 10px 20px; border-radius: 15px; margin-top: 10px;
+        }
+        .stat-item { text-align: center; }
+        .stat-value { display: block; font-size: 1.2rem; color: #4CAF50; font-weight: bold; }
+        .stat-label { font-size: 0.8rem; color: #aaa; }
+
+        /* Колесо */
+        .wheel-wrapper { position: relative; margin: 20px 0; }
         .wheel-container {
-            position: relative;
-            width: 85vw; /* 85% ширины экрана */
-            height: 85vw;
-            max-width: 350px;
-            max-height: 350px;
-            border: 5px solid #333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+            width: 80vw; height: 80vw; max-width: 300px; max-height: 300px;
+            border: 8px solid #333; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1);
+            background: conic-gradient(#ff416c 0% 25%, #ff4b2b 25% 50%, #4a9eff 50% 75%, #00d2ff 75% 100%);
         }
-
-        .wheel-text {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            padding: 20px;
-        }
-
         .pointer {
-            width: 0; height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-top: 25px solid #fff;
-            position: absolute;
-            top: -10px;
-            z-index: 10;
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 30px solid #fff;
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10;
         }
 
         .btn-bet {
-            width: 90%;
-            padding: 15px;
-            margin-bottom: 30px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            touch-action: manipulation; /* Улучшает нажатия на мобилках */
+            width: 90%; padding: 18px; margin-bottom: 40px;
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            color: white; border: none; border-radius: 15px;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer;
         }
-
-        .btn-bet:active { background-color: #1e7e34; transform: scale(0.98); }
+        .btn-bet:disabled { background: #555; cursor: not-allowed; }
     </style>
 </head>
 <body>
-    <div class="header">ВСЕГО 0.00 TON</div>
+    <div class="header">MOLLS GAME</div>
 
-    <div class="pointer"></div>
-    <div class="wheel-container" id="wheel">
-        <div class="wheel-text">Ожидание игроков...</div>
+    <div class="stats-container">
+        <div class="stat-item">
+            <span class="stat-value" id="myBetDisplay">0</span>
+            <span class="stat-label">Моя ставка</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="winChanceDisplay">0%</span>
+            <span class="stat-label">Шанс</span>
+        </div>
     </div>
 
-    <button class="btn-bet" id="betBtn">Сделать ставку</button>
+    <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <div class="wheel-container" id="wheel"></div>
+    </div>
+
+    <button class="btn-bet" id="betBtn">СТАВКА 1 TON</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Растянуть на весь экран ТГ
-
         const socket = io();
         const betBtn = document.getElementById('betBtn');
         const wheel = document.getElementById('wheel');
+        const myBetDisplay = document.getElementById('myBetDisplay');
+        const winChanceDisplay = document.getElementById('winChanceDisplay');
 
-        betBtn.addEventListener('click', () => {
-            console.log("Кнопка нажата");
-            socket.emit('place_bet', { amount: 1 });
-            betBtn.innerText = "Ставка принята!";
+        // Нажали на кнопку
+        betBtn.onclick = () => {
+            const amount = 1; // Фиксированная ставка для теста
+            socket.emit('place_bet', { amount: amount });
             betBtn.disabled = true;
+            betBtn.innerText = "ОЖИДАНИЕ...";
+        };
+        // Обновление статистики (шансы, ставки)
+        socket.on('update_game', (data) => {
+            // Ищем свою ставку в списке игроков (по id сокета)
+            const me = data.players.find(p => p.id === socket.id);
+            if (me) {
+                myBetDisplay.innerText = me.amount + " TON";
+                winChanceDisplay.innerText = me.chance + "%";
+            }
         });
 
+        // Команда на вращение
         socket.on('start_spin', (data) => {
+            console.log("Крутим колеесо на угол:", data.deg);
             wheel.style.transform = `rotate(${data.deg}deg)`;
+            
+            setTimeout(() => {
+                alert("Победитель определен!");
+                // Сбрасываем всё для новой игры через 7 секунд
+                wheel.style.transition = "none";
+                wheel.style.transform = "rotate(0deg)";
+                setTimeout(() => wheel.style.transition = "transform 5s cubic-bezier(0.15, 0, 0.15, 1)", 100);
+                betBtn.disabled = false;
+                betBtn.innerText = "СТАВКА 1 TON";
+            }, 6000);
         });
     </script>
 </body>
