@@ -1,91 +1,109 @@
-css
 body {
-    background-color: #0f1011;
+    background-color: #121214;
     color: white;
     font-family: sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     margin: 0;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.header-container {
+.header {
+    width: 100%;
     display: flex;
     justify-content: space-between;
-    width: 90%;
-    margin-top: 15px;
-    align-items: center;
+    padding: 15px 20px;
+    box-sizing: border-box;
 }
 
-.total-bank-badge {
-    background: #1c1d21;
-    padding: 10px 25px;
+.total-pool {
+    background: #1c1c1e;
+    padding: 10px 20px;
     border-radius: 25px;
+    color: #5ac8fa;
     font-weight: bold;
 }
 
-.total-bank-badge span { color: #4da3ff; }
-
-.wheel-section {
+/* Сама рулетка */
+.roulette-container {
     position: relative;
-    width: 340px;
-    height: 340px;
-    margin: 30px 0;
+    width: 330px;
+    height: 330px;
+    margin-top: 40px;
 }
 
-canvas { width: 100%; height: 100%; border-radius: 50%; }
-
-.pointer-triangle {
+.arrow {
     position: absolute;
     top: -10px;
     left: 50%;
     transform: translateX(-50%);
+    width: 0; height: 0;
     border-left: 15px solid transparent;
     border-right: 15px solid transparent;
-    border-top: 25px solid white;
+    border-top: 20px solid white;
     z-index: 10;
 }
 
-.center-timer-circle {
+#wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1);
+    background: conic-gradient(#34c759 0% 100%); /* Начальный цвет */
+}
+
+/* Центр с таймером */
+.center-circle {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 140px;
-    height: 140px;
-    background: black;
+    width: 120px;
+    height: 120px;
+    background: #000;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 4px solid #1c1d21;
+    border: 4px solid white;
+    z-index: 5;
 }
 
-.timer-text { font-size: 1.8em; font-weight: bold; }
+#timer {
+    font-size: 28px;
+    font-weight: bold;
+}
 
-.player-list { width: 90%; margin-bottom: 80px; }
+/* Аватарки игроков на круге */
+.player-avatar {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #ffdb4d; /* Золотая рамка как на скрине */
+    background-size: cover;
+    top: 50%;
+    left: 50%;
+    margin: -25px 0 0 -25px;
+}
 
-.player-item {
-    background: #1c1d21;
-    margin: 5px 0;
-    padding: 10px;
-    border-radius: 12px;
+/* Кнопки внизу */
+.footer-controls {
+    position: fixed;
+    bottom: 30px;
+    width: 90%;
     display: flex;
     justify-content: space-between;
-    align-items: center;
 }
 
-.player-item img { width: 30px; height: 30px; border-radius: 50%; border: 2px solid gold; }
-
-.make-bet-button {
-    position: fixed;
-    bottom: 20px;
-    width: 90%;
-    background: #28a745;
-    border: none;
-    padding: 15px;
+.btn-group, .balance-group {
+    background: #1c1c1e;
+    padding: 10px;
     border-radius: 15px;
-    color: white;
-    font-weight: bold;
-    font-size: 1.1em;
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
