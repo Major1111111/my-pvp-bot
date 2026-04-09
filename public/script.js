@@ -1,47 +1,106 @@
-const socket = io();
+// Получаем ссылки на DOM-элементы
+const wheel = document.getElementById('wheel');
+const timerDisplay = document.getElementById('timer');
+const poolDisplay = document.getElementById('pool-amount');
 
-// Элементы интерфейса
-const timerElement = document.getElementById('timer');
-const playersList = document.getElementById('players-list'); // Если есть список
+// Список игроков (в реальности эти данные придут с сервера)
+let players = [
+    { name: "Player1", bet: 10, color: "#34c759", avatar: "https://i.pravatar.cc/100?img=1" },
+    { name: "Player2", bet: 2, color: "#007aff", avatar: "https://i.pravatar.cc/100?img=2" },
+    { name: "Player3", bet: 1.5, color: "#ff3b30", avatar: "https://i.pravatar.cc/100?img=3" }
+];
 
-// Слушаем обновление таймера от сервера
-socket.on('timerUpdate', (data) => {
-    if (timerElement) {
-        timerElement.innerText = data.text;
-        
-        // Меняем стиль, если нужно
-        if (data.status === 'waiting') {
-            timerElement.style.color = "#888"; // Серый цвет в ожидании
-            timerElement.style.fontSize = "20px";
-        } else {
-            timerElement.style.color = "#fff"; // Белый цвет при отсчете
-            timerElement.style.fontSize = "32px";
-        }
+function updateWheel() {
+    // Проверка, что poolDisplay существует
+    if (!poolDisplay) {
+        console.error("Элемент 'pool-amount' не найден.");
+        return;
     }
-});
 
-// Слушаем начало вращения
-socket.on('startSpin', (data) => {
-    if (timerElement) {
-        timerElement.innerText = "Крутим!";
-        timerElement.style.color = "#f1c40f";
+    const totalBet = players.reduce((sum, p) => sum + p.bet, 0);
+    poolDisplay.innerText = totalBet.toFixed(2);
+
+    let currentPercent = 0;
+    let gradientArray = [];
+
+    // Проверка, что wheel существует
+    if (!wheel) {
+        console.error("Элемент 'wheel' не найден.");
+        return;
     }
-    console.log("Победитель будет:", data.winner.name);
-    // Здесь твоя анимация вращения колеса
-});
 
-// Обновление списка игроков
-socket.on('updatePlayers', (players) => {
-    console.log("Список игроков обновлен:", players);
-    // Тут код отрисовки аватарок и процентов на круге
-});
+    wheel.innerHTML = ''; // Очищаем старые аватарки
 
-// Пример функции ставки (вызывать при клике на кнопку)
-function makeBet() {
-    const user = {
-        id: "123", // Уникальный ID из Telegram
-        name: "@bo4st",
-        avatar: "url_to_photo"
-    };
-    socket.emit('joinGame', user);
+    players.forEach(player => {
+        const share = (player.bet / totalBet) * 100;
+        const startDeg = (currentPercent / 100) * 360;
+        const endDeg = ((currentPercent + share) / 100) * 360;
+
+        // Добавляем сектор в градиент (ИСПРАВЛЕНО: добавлены обратные кавычки)
+        gradientArray.push(`${player.color} ${currentPercent}% ${currentPercent + share}%`);
+
+        // Считаем угол для аватарки (середина сектора)
+        const middleAngle = startDeg + (endDeg - startDeg) / 2;
+        placeAvatar(player.avatar, middleAngle);
+
+        currentPercent += share;
+    });
+
+    // Рисуем цветные сектора (ИСПРАВЛЕНО: добавлены обратные кавычки)
+    wheel.style.background = `conic-gradient(${gradientArray.join(', ')})`;
 }
+
+function placeAvatar(imgUrl, angle) {
+    // Проверка, что wheel существует
+    if (!wheel) {
+        console.error("Элемент 'wheel' не найден. Невозможно разместить аватар.");
+        return;
+    }
+
+    const img = document.createElement('div');
+    img.className = 'player-avatar';
+    // ИСПРАВЛЕНО: добавлены обратные кавычки
+    img.style.backgroundImage = `url(${imgUrl})`;
+    
+    // Вынос аватарки на 100px от центра
+    const radius = 100; 
+    // Формула: поворот -> вынос -> возврат поворота (чтобы лицо не было боком)
+    // ИСПРАВЛЕНО: добавлены обратные кавычки
+    img.style.transform = `rotate(${angle}deg) translateY(-${radius}px) rotate(-${angle}deg)`;
+    
+    wheel.appendChild(img);
+}
+
+// Простой таймер
+let seconds = 15;
+function startCountdown() {
+    // Проверка, что timerDisplay существует
+    if (!timerDisplay) {
+        console.error("Элемент 'timer' не найден.");
+        return;
+    }
+
+    const itv = setInterval(() => {
+        seconds--;
+        // ИСПРАВЛЕНО: добавлены обратные кавычки
+        timerDisplay.innerText = `00:${seconds < 10 ? '0' + seconds : seconds}`;
+        if (seconds <= 0) {
+            clearInterval(itv);
+            spinWheel(Math.random() * 360 + 1440); // Крутим минимум на 4 оборота
+        }
+    }, 1000);
+}
+
+function spinWheel(deg) {
+    // Проверка, что wheel существует
+    if (!wheel) {
+        console.error("Элемент 'wheel' не найден. Невозможно вращать колесо.");
+        return;
+    }
+    // ИСПРАВЛЕНО: добавлены обратные кавычки
+    wheel.style.transform = `rotate(${deg}deg)`;
+}
+
+// Запуск при загрузке
+updateWheel();
+startCountdown();
